@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B192C" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Plantão Pro" />
+  <title>Plantão Pro — SAE, Escalas &amp; Calculadoras</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .navy-bg { background-color: #0B192C; }
+    .navy-text { color: #0B192C; }
+    .chip-active {
+      background-color: #0B192C !important;
+      color: #FFFFFF !important;
+      border-color: #0B192C !important;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(11, 25, 44, 0.22);
+    }
+    .nav-pill-active {
+      background-color: #0B192C !important;
+      color: #FFFFFF !important;
+      border-color: #0B192C !important;
+    }
+    .mobile-nav-active {
+      color: #0B192C !important;
+      font-weight: 700;
+      background-color: #F1F5F9;
+    }
+    .mobile-nav-active svg {
+      stroke: #0B192C;
+      stroke-width: 2.3;
+    }
+    .evo-paragraph {
+      text-align: justify;
+      text-indent: 2em;
+      margin: 0;
+      line-height: 1.65;
+    }
+    #print-sheet { display: none; }
+    @media print {
+      .no-print, header, main, footer, nav { display: none !important; }
+      #print-sheet { display: block !important; padding: 24px; color: #000000; background: #FFFFFF; font-family: 'Inter', sans-serif; }
+      body { background: #FFFFFF !important; color: #000000 !important; padding: 0 !important; margin: 0 !important; }
+      .print-break-inside { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col pb-24 lg:pb-6">
+
+  <!-- Toast -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 no-print"></div>
+  <div id="print-sheet"></div>
+
+  <!-- Confirm Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 border border-slate-200">
+      <h3 id="modal-title" class="text-base font-bold text-slate-900">Confirmar</h3>
+      <p id="modal-message" class="text-sm text-slate-600 mt-2"></p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button id="modal-cancel" type="button" class="px-4 py-2 text-sm font-medium rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100">Cancelar</button>
+        <button id="modal-confirm" type="button" class="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-600 text-white hover:bg-rose-700">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Executive Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print shadow-sm">
+    <!-- Row 1: Centered Icon, Title & Subtitle -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-2 flex flex-col items-center text-center">
+      <div class="flex items-center justify-center gap-2.5">
+        <img src="icon-192.png" alt="Plantão Pro" class="w-10 h-10 rounded-xl shadow-sm shrink-0 object-cover" />
+        <h1 class="text-lg sm:text-xl font-extrabold tracking-tight navy-text leading-none">Plantão Pro</h1>
+      </div>
+      <p class="text-[11px] sm:text-xs text-slate-500 mt-1 text-center">Sistematização da Assistência de Enfermagem • COFEN 736/2024</p>
+    </div>
+
+    <!-- Row 2: Patient & Shift Actions -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-2 flex flex-wrap items-center justify-center gap-2">
+      <select id="patient-selector" class="bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-800 flex-1 sm:flex-none sm:min-w-[200px] focus:outline-none"></select>
+      <button id="btn-new-patient" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl navy-bg text-white hover:opacity-90 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <span>Novo Leito</span>
+      </button>
+      <button id="btn-demo-case" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+        <span>Caso Exemplo</span>
+      </button>
+      <button id="btn-reset-patient" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        <span>Limpar</span>
+      </button>
+    </div>
+
+    <!-- Row 2b: Nurse Name & COREN-UF (Persistent Profile) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-2.5 flex flex-wrap items-center justify-center gap-1.5">
+      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 flex-1 sm:flex-none sm:min-w-[230px]">
+        <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        <input id="inp-nurse-name" type="text" placeholder="Enfermeiro(a)" class="bg-transparent text-xs font-medium text-slate-800 w-full focus:outline-none" />
+      </div>
+      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 w-36 sm:w-44">
+        <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>
+        <input id="inp-nurse-coren" type="text" placeholder="COREN-UF" class="bg-transparent text-xs font-medium text-slate-800 w-full focus:outline-none" />
+      </div>
+      <button id="btn-save-nurse" type="button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold hover:bg-emerald-100 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <span id="lbl-save-nurse">Salvar</span>
+      </button>
+    </div>
+
+    <!-- Row 3: Process Steps (Escalas separated from Calculadoras) -->
+    <div class="bg-slate-50/90 border-t border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex overflow-x-auto gap-1.5">
+        <button type="button" data-tab="avaliacao" class="nav-pill nav-pill-active inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>1. Avaliação (ABCDE)</span>
+        </button>
+        <button type="button" data-tab="diagnosticos" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span>2. Diagnósticos</span>
+        </button>
+        <button type="button" data-tab="prescricao" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 12h6m-6 4h6"/></svg>
+          <span>3. Prescrição</span>
+        </button>
+        <button type="button" data-tab="resultados" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          <span>4. Resultados Esperados</span>
+        </button>
+        <button type="button" data-tab="evolucao" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <span>5. Evolução</span>
+        </button>
+        <button type="button" data-tab="escalas" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-sky-800 hover:bg-sky-50 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span>Escalas &amp; Calculadoras</span>
+        </button>
+        <button type="button" data-tab="prontuario" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Prontuário</span>
+        </button>
+        <button type="button" data-tab="autor" class="nav-pill inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Sobre o Autor</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5">
+
+    <!-- TAB 1: AVALIAÇÃO (ABCDE STEPPER) -->
+    <section id="tab-avaliacao" class="tab-panel space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Identificação &amp; Sinais Vitais</span>
+          </h2>
+          <span id="calc-age-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700">Idade: --</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-2">
+          <div class="sm:col-span-2">
+            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nome / Iniciais</label>
+            <input id="inp-nome" type="text" placeholder="Ex.: J.S.M." class="w-full px-3 py-1.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-slate-800 outline-none" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Leito / Box</label>
+            <input id="inp-leito" type="text" placeholder="Box 01" class="w-full px-3 py-1.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-slate-800 outline-none" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Data de Nascimento</label>
+            <input id="inp-dob" type="date" class="w-full px-2.5 py-1.5 text-xs sm:text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-slate-800 outline-none bg-white" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Hipótese Diagnóstica</label>
+            <input id="inp-hipotese" type="text" placeholder="Ex.: Sepse pulmonar" class="w-full px-3 py-1.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-slate-800 outline-none" />
+          </div>
+        </div>
+        <div class="grid grid-cols-4 sm:grid-cols-8 gap-2 mt-2.5 pt-2.5 border-t border-slate-100">
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">PAS</label><input id="vit-pas" type="number" placeholder="120" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">PAD</label><input id="vit-pad" type="number" placeholder="80" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">FC</label><input id="vit-fc" type="number" placeholder="80" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">FR</label><input id="vit-fr" type="number" placeholder="18" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tax °C</label><input id="vit-tax" type="number" step="0.1" placeholder="36.5" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">SpO2 %</label><input id="vit-spo2" type="number" placeholder="97" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Dor EVA</label><input id="vit-eva" type="number" min="0" max="10" placeholder="0" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+          <div><label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Dextro</label><input id="vit-dextro" type="number" placeholder="100" class="w-full px-2 py-1 text-xs sm:text-sm rounded-lg border border-slate-300 outline-none" /></div>
+        </div>
+      </div>
+
+      <!-- ABCDE Stepper Bar -->
+      <div id="abcde-stepper-bar" class="grid grid-cols-5 gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm"></div>
+
+      <!-- Single Active ABCDE Letter Card -->
+      <div id="abcde-single-card" class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-4"></div>
+    </section>
+
+    <!-- TAB ESCALAS & CALCULADORAS -->
+    <section id="tab-escalas" class="tab-panel hidden space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Escalas Assistenciais &amp; Calculadoras de Plantão</h2>
+          <p class="text-xs text-slate-500">Use o botão <strong>+ Incluir na SAE</strong> em qualquer escala para levá-la para Diagnósticos, Prescrição e Evolução.</p>
+        </div>
+        <div class="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
+          <button id="sub-btn-escalas" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold navy-bg text-white">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Escalas (13)</span>
+          </button>
+          <button id="sub-btn-calcs" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <span>Calculadoras (7)</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="panel-escalas" class="space-y-4">
+        <div id="selected-scales-summary" class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm"></div>
+        <div class="flex flex-wrap gap-1.5" id="scale-selector-pills"></div>
+        <div id="active-scale-card" class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm"></div>
+      </div>
+
+      <div id="panel-calcs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- TAB 3: DIAGNÓSTICOS DE ENFERMAGEM -->
+    <section id="tab-diagnosticos" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">2. Diagnósticos de Enfermagem</h2>
+          <p class="text-xs text-slate-500">Selecione os diagnósticos aplicáveis (integrados ao ABCDE e escalas) e gere o texto em formato PES.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="btn-suggest-dx" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Pré-selecionar</span>
+          </button>
+          <button id="btn-gen-dx" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Gerar Diagnósticos</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="scales-ref-banner bg-sky-50 border border-sky-200 rounded-2xl p-3 text-xs text-sky-950"></div>
+      <div id="dx-options-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Diagnósticos Gerados (Editável)</h3>
+          <button id="btn-go-resultados" type="button" class="inline-flex items-center gap-1 text-xs font-bold text-sky-800 hover:underline">
+            <span>TEMP_PRESC</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <textarea id="txt-diagnosticos" rows="6" placeholder="Selecione as opções acima e clique em 'Gerar Diagnósticos'..." class="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-slate-800 outline-none leading-relaxed"></textarea>
+      </div>
+    </section>
+
+    <!-- TAB 4: RESULTADOS ESPERADOS -->
+    <section id="tab-resultados" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">4. Resultados Esperados</h2>
+          <p class="text-xs text-slate-500">Metas padronizadas (sujeito + verbo de medida + critério + prazo) vinculadas ao atendimento.</p>
+        </div>
+        <button id="btn-gen-resultados" type="button" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          <span>Gerar Resultados Esperados</span>
+        </button>
+      </div>
+
+      <div class="scales-ref-banner bg-sky-50 border border-sky-200 rounded-2xl p-3 text-xs text-sky-950"></div>
+      <div id="res-options-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Resultados Esperados Gerados (Editável)</h3>
+          <button id="btn-go-prescricao" type="button" class="inline-flex items-center gap-1 text-xs font-bold text-sky-800 hover:underline">
+            <span>Avançar para Evolução</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <textarea id="txt-resultados" rows="6" placeholder="Selecione as metas acima e clique em 'Gerar Resultados Esperados'..." class="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-slate-800 outline-none leading-relaxed"></textarea>
+      </div>
+    </section>
+
+    <!-- TAB 5: PRESCRIÇÃO DE ENFERMAGEM -->
+    <section id="tab-prescricao" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">3. Prescrição de Enfermagem</h2>
+          <p class="text-xs text-slate-500">Selecione os cuidados de enfermagem com aprazamento e gere a prescrição completa.</p>
+        </div>
+        <button id="btn-gen-prescricao" type="button" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 12h6m-6 4h6"/></svg>
+          <span>Gerar Prescrição de Enfermagem</span>
+        </button>
+      </div>
+
+      <div class="scales-ref-banner bg-sky-50 border border-sky-200 rounded-2xl p-3 text-xs text-sky-950"></div>
+      <div id="presc-options-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Prescrição de Enfermagem Gerada (Editável)</h3>
+          <button id="btn-go-evolucao" type="button" class="inline-flex items-center gap-1 text-xs font-bold text-sky-800 hover:underline">
+            <span>Avançar para Resultados Esperados</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <textarea id="txt-prescricao" rows="8" placeholder="Selecione os cuidados acima e clique em 'Gerar Prescrição de Enfermagem'..." class="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-slate-800 outline-none leading-relaxed"></textarea>
+      </div>
+    </section>
+
+    <!-- TAB 6: EVOLUÇÃO DE ENFERMAGEM -->
+    <section id="tab-evolucao" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">5. Evolução de Enfermagem</h2>
+          <p class="text-xs text-slate-500">Texto corrido justificado em parágrafos recuados na ordem do ABCDE, integrando escalas mensuradas, VMI/O2 e assinatura centralizada.</p>
+        </div>
+        <button id="btn-gen-evolucao" type="button" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-95 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <span>Gerar Evolução de Enfermagem</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Visualização Formatada (Justificada) &amp; Edição</h3>
+          <div class="flex flex-wrap gap-2">
+            <button id="btn-copy-evolucao" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl navy-bg text-white text-xs font-semibold hover:opacity-90">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              <span>Copiar Evolução</span>
+            </button>
+            <button id="btn-print-evolucao" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              <span>Imprimir / PDF</span>
+            </button>
+            <button type="button" data-jump="prontuario" class="jump-btn inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <span>Ver Prontuário</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Formatted Justified Preview -->
+        <div id="evo-formatted-preview" class="p-4 sm:p-5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800"></div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1">Texto Editável (para ajustes manuais):</label>
+          <textarea id="txt-evolucao" rows="10" placeholder="Clique em 'Gerar Evolução de Enfermagem' acima..." class="w-full p-3.5 text-sm leading-relaxed rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-slate-800 outline-none"></textarea>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- TAB 8: PRONTUÁRIO COMPLETO -->
+    <section id="tab-prontuario" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Prontuário SAE Completo — Plantão Pro</h2>
+          <p class="text-xs text-slate-500">Todas as etapas da Resolução COFEN nº 736/2024 prontas para copiar ou imprimir.</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="btn-copy-all" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-90">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span>Copiar Tudo</span>
+          </button>
+          <button id="btn-print-all" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <span>Imprimir / PDF</span>
+          </button>
+        </div>
+      </div>
+      <div id="prontuario-preview" class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-sm space-y-5"></div>
+    </section>
+
+    <!-- TAB 9: SOBRE O AUTOR -->
+    <section id="tab-autor" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-sm">
+        <div class="mb-4">
+          <h2 class="text-xl font-extrabold navy-text">Enf. Gyldemax Cavalcante Ferreira</h2>
+          <p class="text-xs font-semibold text-sky-800 mt-0.5">COREN-MA 508446 • CEO &amp; Co-fundador do Instituto Códice</p>
+        </div>
+        <div class="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify space-y-3">
+          <figure class="sm:float-left sm:mr-6 mb-4 w-56 sm:w-60 mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm">
+            <img id="author-fixed-img" src="autor.jpg" alt="Enf. Gyldemax Cavalcante Ferreira" class="w-full h-auto block" />
+            <figcaption class="px-3 py-2 text-[11px] leading-snug text-slate-500 border-t border-slate-200 bg-white text-left">
+              Enf. Gyldemax Cavalcante Ferreira (COREN-MA 508446), idealizador do Plantão Pro e co-fundador do Instituto Códice.
+            </figcaption>
+          </figure>
+          <p>
+            Bacharel em Enfermagem pela Faculdade de Imperatriz (FACIMP | Wyden) e pós-graduando em Urgência, Emergência e UTI. Atua como Coordenador Geral do Serviço de Enfermagem do Hospital Municipal Dr. Leônidas Lima da Silva e Coordenador do Núcleo Municipal de Segurança do Paciente (NMSP) em Gonçalves Dias-MA, além de atuar na assistência de Urgência e Emergência no Hospital Regional de Presidente Dutra (HREPD) e na docência para formação de técnicos em enfermagem.
+          </p>
+          <p>
+            <strong>Por que desenvolvi o Plantão Pro:</strong> na rotina real dos plantões de urgência, emergência e internação, percebi que o maior obstáculo para a aplicação efetiva da Sistematização da Assistência de Enfermagem (SAE) não é a falta de conhecimento técnico, mas a falta de tempo e de ferramentas ágeis à beira-leito. O <strong>Plantão Pro</strong> nasceu dentro do Instituto Códice para unir raciocínio clínico estruturado (ABCDE), escalas assistenciais automáticas e registro em conformidade com a Resolução COFEN nº 736/2024 em poucos toques, devolvendo segurança jurídica ao profissional e tempo de cuidado ao paciente.
+          </p>
+          <div class="clear-both"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Executive Intellectual Property Footer -->
+  <footer class="max-w-5xl w-full mx-auto px-4 sm:px-6 pt-2 pb-6 text-center text-[11px] text-slate-500">
+    <p class="font-semibold text-slate-600">Plantão Pro • Propriedade Intelectual do Instituto Códice — Ensino Imersivo que Salva Vidas.</p>
+    <p class="mt-0.5">Ferramenta de apoio à decisão clínica em conformidade com a Resolução COFEN nº 736/2024.</p>
+  </footer>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 no-print shadow-[0_-2px_10px_rgba(15,23,42,0.06)]">
+    <div class="grid grid-cols-8 text-[8.5px] font-medium text-slate-500">
+      <button type="button" data-tab="avaliacao" class="mob-nav mobile-nav-active py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>ABCDE</span>
+      </button>
+      <button type="button" data-tab="diagnosticos" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <span>Diag.</span>
+      </button>
+      <button type="button" data-tab="prescricao" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 12h6m-6 4h6"/></svg>
+        <span>Prescr.</span>
+      </button>
+      <button type="button" data-tab="resultados" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        <span>Result.</span>
+      </button>
+      <button type="button" data-tab="evolucao" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <span>Evolução</span>
+      </button>
+      <button type="button" data-tab="escalas" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        <span>Escalas</span>
+      </button>
+      <button type="button" data-tab="prontuario" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Pront.</span>
+      </button>
+      <button type="button" data-tab="autor" class="mob-nav py-2 px-0.5 flex flex-col items-center justify-center gap-1 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Autor</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'plantao_pro_v5';
+      const PROFILE_KEY = 'plantao_pro_nurse_profile_v1';
+      const VMI_LABEL = 'Ventilação Mecânica Invasiva (VMI)';
+      const O2_LABEL = 'Oxigenoterapia (CN / Máscara / VNI)';
+      const SEDADO_LABEL = 'Sedado sob analgesia/sedação';
+
+      const A_STATES = {
+        'Bom Estado Geral (BEG)': ['Lúcido e orientado em tempo e espaço', 'Pupilas isocóricas e fotorreagentes', 'Colaborativo e comunicativo', 'Sem déficits motores', 'Hidratado e afebril', 'Corado'],
+        'Regular Estado Geral (REG)': ['Sonolento / Hipoativo', 'Confuso / Desorientado', 'Ansioso / Queixoso', 'Pupilas isocóricas e fotorreagentes', 'Déficit motor / Paresia leve', 'Febril / Hipertermia', 'Hipocorado / Desidratado'],
+        'Mau Estado Geral (MEG)': ['Agitado / Delirium', SEDADO_LABEL, 'Comatoso / Irresponsivo', 'Pupilas isocóricas e fotorreagentes', 'Anisocoria / Midríase / Miose', 'Déficit motor / Paresia focal', 'Febril / Hipotérmico']
+      };
+
+      const B_MODES = {
+        'Ar Ambiente': ['Eupneico em ar ambiente', 'Taquipneico / Esforço respiratório', 'Murmúrio vesicular presente bilateralmente', 'Estertores / Crepitações', 'Sibilos / Roncos', 'Tosse produtiva / Secreção em vias aéreas'],
+        [O2_LABEL]: ['Uso de O2 por cateter nasal', 'Uso de O2 por máscara não reinalante', 'Em ventilação não invasiva (VNI)', 'Esforço respiratório moderado/intenso', 'Murmúrio vesicular presente bilateralmente', 'Estertores / Crepitações', 'Sibilos / Roncos'],
+        [VMI_LABEL]: [VMI_LABEL, 'Sincrônico ao ventilador mecânico', 'Assincronia ventilatória', 'Murmúrio vesicular presente bilateralmente', 'Estertores / Crepitações', 'Secreção espessa em vias aéreas']
+      };
+
+      const C_PROFILES = {
+        'Estável sem DVA': ['Pele corada, quente e seca', 'Perfusão periférica preservada (< 3s)', 'Normotenso', 'Hipertenso', 'Pulso cheio, rítmico e normocárdico', 'Bulhas rítmicas normofonéticas em 2T (BRNF)', 'Percussão torácica/precordial sem alterações', 'Sem suporte hemodinâmico (DVA)'],
+        'Instável / Em uso de DVA': ['Pele hipocorada / fria / sudoreica', 'Perfusão periférica lentificada (> 3s)', 'Hipotenso', 'Pulso fino / filiforme / taquicárdico', 'Pulso bradicárdico / arrítmico', 'Bulhas hipofonéticas / Sopro cardíaco', 'Em uso de droga vasoativa (DVA)', 'Reposição volêmica em curso']
+      };
+
+      const D_GROUPS = [
+        { sub: 'Dieta', opts: ['Dieta via oral com boa aceitação', 'Dieta enteral (SNE/GTT) em infusão', 'Nutrição parenteral (NPT)', 'Dieta zero / Jejum'] },
+        { sub: 'Dor', opts: ['Sem dor no momento', 'Dor leve (EVA 1-3)', 'Dor moderada a intensa (EVA ≥ 4)'] },
+        { sub: 'Dispositivos', opts: ['Sem dispositivos invasivos', 'Acesso venoso periférico (AVP) pérvio sem sinais flogísticos', 'Acesso venoso central (AVC) / PICC pérvio sem sinais de infecção', 'Sonda vesical de demora (SVD) pérvia', 'Sonda nasoenteral (SNE) / SNG / GTT pérvia'] },
+        { sub: 'Avaliação Abdominal (Ausculta e Percussão)', opts: ['Abdome flácido, indolor, RHA presentes e timpânico à percussão', 'Abdome distendido / tenso / RHA diminuídos ou ausentes', 'Abdome maciço à percussão / Doloroso à palpação'] },
+        { sub: 'Drenos e Classificações', opts: ['Sem drenos', 'Dreno de tórax em selo d’água', 'Dreno de sucção (Portovac/Blake)', 'Dreno laminar (Penrose) / Tubular', 'Débito seroso / sero-hemático', 'Débito hemático / purulento'] }
+      ];
+
+      const E_GROUPS = [
+        { sub: 'Pele & Feridas', opts: ['Pele íntegra e hidratada', 'Lesão por pressão presente', 'Ferida operatória / Curativo limpo e seco', 'Edema em membros inferiores'] },
+        { sub: 'Eliminações', opts: ['Diurese espontânea presente e límpida', 'Oligúria / Anúria', 'Evacuações presentes e fisiológicas', 'Ausência de evacuações / Constipação'] },
+        { sub: 'Exames & Segurança', opts: ['Exames laboratoriais coletados / pendentes', 'Exames laboratoriais avaliados', 'Exames de imagem realizados (RX/TC/USG/ECG)', 'Grades elevadas e pulseira de identificação conferida'] }
+      ];
+
+      const DX_CATALOG = [
+        { id: 'dx_choque', titulo: 'Risco de Choque / Perfusão Tissular Ineficaz', fator: 'instabilidade hemodinâmica / hipoperfusão', carac: 'hipotensão, pulso filiforme, perfusão > 3s ou uso de DVA', tags: ['Hipotenso', 'Pulso fino / filiforme / taquicárdico', 'Em uso de droga vasoativa (DVA)', 'Perfusão periférica lentificada (> 3s)'] },
+        { id: 'dx_troca', titulo: 'Troca de Gases Prejudicada / Padrão Respiratório Ineficaz', fator: 'desequilíbrio ventilação-perfusão', carac: 'taquipneia, esforço respiratório, necessidade de O2/VMI ou ruídos adventícios', tags: ['Taquipneico / Esforço respiratório', 'Uso de O2 por cateter nasal', 'Uso de O2 por máscara não reinalante', VMI_LABEL, 'Estertores / Crepitações', 'Sibilos / Roncos'] },
+        { id: 'dx_neuro', titulo: 'Confusão Aguda / Capacidade Adaptativa Intracraniana Diminuída', fator: 'disfunção neurológica, hipóxia ou alteração metabólica', carac: 'sonolência, confusão, agitação, anisocoria ou déficit motor', tags: ['Sonolento / Hipoativo', 'Confuso / Agitado', SEDADO_LABEL, 'Comatoso / Irresponsivo', 'Anisocoria / Midríase / Miose', 'Déficit motor / Paresia focal'] },
+        { id: 'dx_dor', titulo: 'Dor Aguda', fator: 'agente lesivo físico/biológico ou procedimento', carac: 'relato verbal de dor e pontuação na EVA/BPS', tags: ['Dor leve (EVA 1-3)', 'Dor moderada a intensa (EVA ≥ 4)'] },
+        { id: 'dx_hiper', titulo: 'Hipertermia', fator: 'processo infeccioso ou resposta inflamatória', carac: 'elevação da temperatura corporal acima dos parâmetros normais', tags: ['Febril / Hipertermia'] },
+        { id: 'dx_infeccao', titulo: 'Risco de Infecção', fator: 'procedimentos invasivos e quebra de barreira cutânea', carac: 'presença de AVP, AVC, SVD, drenos ou ferida operatória', tags: ['Acesso venoso periférico (AVP) pérvio sem sinais flogísticos', 'Acesso venoso central (AVC) / PICC pérvio sem sinais de infecção', 'Sonda vesical de demora (SVD) pérvia', 'Dreno de tórax em selo d’água', 'Dreno de sucção (Portovac/Blake)', 'Ferida operatória / Curativo limpo e seco'] },
+        { id: 'dx_lp', titulo: 'Risco de Lesão por Pressão / Integridade da Pele Prejudicada', fator: 'imobilidade, umidade, fricção ou cisalhamento', carac: 'restrição ao leito, escore de Braden reduzido ou lesão existente', tags: ['Lesão por pressão presente', 'Comatoso / Irresponsivo'] },
+        { id: 'dx_queda', titulo: 'Risco de Quedas', fator: 'mobilidade alterada, confusão mental ou terapia endovenosa', carac: 'escore de Morse elevado ou déficit neurológico/motor', tags: ['Confuso / Agitado', 'Déficit motor / Paresia focal', 'Sonolento / Hipoativo'] },
+        { id: 'dx_vol', titulo: 'Volume de Líquidos Deficiente / Risco de Desequilíbrio Hidroeletrolítico', fator: 'perdas aumentadas ou baixa ingesta', carac: 'desidratação, oligúria ou edema', tags: ['Oligúria / Anúria', 'Edema em membros inferiores', 'Hipocorado / Desidratado'] },
+        { id: 'dx_gastro', titulo: 'Motilidade Gastrointestinal Disfuncional / Nutrição Desequilibrada', fator: 'jejum prolongado, distensão abdominal ou redução de RHA', carac: 'abdome distendido, RHA diminuídos/ausentes ou constipação', tags: ['Abdome distendido / tenso / RHA diminuídos ou ausentes', 'Ausência de evacuações / Constipação', 'Dieta zero / Jejum'] }
+      ];
+
+      const RES_CATALOG = [
+        { id: 'res_hemo', text: 'O paciente manterá estabilidade hemodinâmica com PAM ≥ 65 mmHg e perfusão periférica < 3 segundos durante todo o plantão (12h).' },
+        { id: 'res_resp', text: 'O paciente apresentará melhora do padrão respiratório com SpO2 ≥ 94% e ausência de esforço ventilatório em até 2 horas.' },
+        { id: 'res_neuro', text: 'O paciente manterá estabilidade neurológica sem queda na ECG-P e com meta de RASS atingida nas próximas 12 horas.' },
+        { id: 'res_dor', text: 'O paciente referirá alívio da dor com redução para EVA ≤ 3 (ou BPS ≤ 5) em até 60 minutos após a analgesia.' },
+        { id: 'res_temp', text: 'O paciente atingirá normotermia com temperatura axilar entre 36,0 °C e 37,4 °C em até 2 horas após as intervenções.' },
+        { id: 'res_inf', text: 'O paciente manterá sítios de dispositivos invasivos, drenos e feridas livres de sinais flogísticos durante todo o período de internação.' },
+        { id: 'res_pele', text: 'O paciente preservará integridade cutânea sem surgimento de novas lesões por pressão durante todo o plantão (24h).' },
+        { id: 'res_queda', text: 'O paciente permanecerá livre de episódios de queda durante todo o período de internação.' },
+        { id: 'res_hidr', text: 'O paciente manterá débito urinário satisfatório ≥ 0,5 mL/kg/h e balanço hídrico equilibrado nas próximas 12 horas.' },
+        { id: 'res_gastro', text: 'O paciente restabelecerá trânsito intestinal fisiológico com RHA presentes e boa aceitação da dieta em até 24 horas.' }
+      ];
+
+      const PRESC_CATALOG = [
+        { id: 'pr_ssvv', text: 'Monitorizar sinais vitais completos e escore NEWS2 a cada 2 horas (ou 1/1h se instável).' },
+        { id: 'pr_o2', text: 'Manter cabeceira elevada a 30°–45°, checar parâmetros de VMI/cuff/TOT ou oxigenoterapia ACM.' },
+        { id: 'pr_neuro', text: 'Aplicar Escala de Coma de Glasgow + Pupilas (ECG-P) e RASS a cada 2 horas.' },
+        { id: 'pr_dva', text: 'Controlar rigorosamente vazão de droga vasoativa em bomba de infusão contínua e monitorar PAM.' },
+        { id: 'pr_dor', text: 'Avaliar dor pela EVA/BPS a cada 4 horas, administrar analgesia prescrita e reavaliar após 30–60 minutos.' },
+        { id: 'pr_febre', text: 'Controlar curva térmica a cada 2 horas e administrar antitérmico conforme prescrição médica.' },
+        { id: 'pr_disp', text: 'Inspecionar sítios de punção, drenos (aspecto/volume) e curativos; realizar antissepsia com álcool 70%.' },
+        { id: 'pr_lp', text: 'Realizar mudança de decúbito a cada 2 horas, hidratar a pele e proteger proeminências ósseas.' },
+        { id: 'pr_queda', text: 'Manter grades do leito elevadas, rodas travadas, pulseira de identificação e campainha ao alcance.' },
+        { id: 'pr_bh', text: 'Realizar controle rigoroso de diurese, débito de drenos e balanço hídrico por turno.' }
+      ];
+
+      const SCALE_LIST = [
+        { id: 'glasgow', name: 'ECG-P (Glasgow)' }, { id: 'rass', name: 'RASS' },
+        { id: 'cincinnati', name: 'Cincinnati' }, { id: 'nihss', name: 'NIHSS' },
+        { id: 'braden', name: 'Braden' }, { id: 'morse', name: 'Morse' },
+        { id: 'news2', name: 'NEWS2' }, { id: 'qsofa', name: 'qSOFA' },
+        { id: 'sofa', name: 'SOFA' }, { id: 'fugulin', name: 'Fugulin' },
+        { id: 'eva', name: 'Dor (EVA)' }, { id: 'bps', name: 'Dor (BPS)' },
+        { id: 'adiva', name: 'A-DIVA' }
+      ];
+
+      function newPatient(label) {
+        return {
+          id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+          nome: '', leito: label || 'Box 01', dob: '', hipotese: '',
+          vitals: { pas: '', pad: '', fc: '', fr: '', tax: '', spo2: '', eva: '', dextro: '' },
+          estadoGeral: '', respModo: '', o2Fluxo: '', hemoPerfil: '',
+          abcdeSelected: { A: [], B: [], C: [], D: [], E: [] },
+          abcdeExtra: { A: '', B: '', C: '', D: '', E: '' },
+          vmi: { params: '', cuff: '', posTot: '', numTot: '' },
+          measuredScales: ['glasgow'],
+          selectedDxIds: [], selectedResIds: [], selectedPrescIds: [],
+          txtDiagnosticos: '', txtResultados: '', txtPrescricao: '', txtEvolucao: '',
+          scales: {
+            glasgow: { ocular: 4, verbal: 5, motora: 6, pupilar: 0 },
+            rass: 0,
+            cincinnati: { face: 0, arm: 0, speech: 0 },
+            nihss: Array(11).fill(0),
+            braden: { sensorial: 4, umidade: 4, atividade: 4, mobilidade: 4, nutricao: 4, friccao: 3 },
+            morse: { hist: 0, diag: 0, aux: 0, iv: 0, marcha: 0, mental: 0 },
+            news2: { spo2Scale: 1, o2: 0, cons: 0 },
+            qsofa: { fr: 0, pas: 0, mental: 0 },
+            sofa: { resp: 0, coag: 0, fig: 0, cardio: 0, snc: 0, renal: 0 },
+            fugulin: { mental: 1, oxig: 1, ssvv: 1, motil: 1, deamb: 1, alim: 1, corp: 1, elim: 1, terap: 1 },
+            eva: 0,
+            bps: { face: 1, upper: 1, vent: 1 },
+            adiva: { hist: 0, expect: 0, palp: 0, vis: 0, diam: 0 }
+          }
+        };
+      }
+
+      let state = { patients: [], activeId: null, activeTab: 'avaliacao', activeAbcde: 'A', activeScale: 'braden', nurseName: '', nurseCoren: '' };
+
+      function loadState() {
+        try {
+          const prof = localStorage.getItem(PROFILE_KEY);
+          if (prof) {
+            const pr = JSON.parse(prof);
+            state.nurseName = pr.nurseName || '';
+            state.nurseCoren = pr.nurseCoren || '';
+            
+          }
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.patients) && parsed.patients.length > 0) {
+              state.patients = parsed.patients;
+              state.activeId = parsed.activeId || parsed.patients[0].id;
+              return;
+            }
+          }
+        } catch (e) {}
+        const p = newPatient('Box 01');
+        state.patients = [p]; state.activeId = p.id;
+      }
+
+      function saveProfile() {
+        try {
+          localStorage.setItem(PROFILE_KEY, JSON.stringify({
+            nurseName: state.nurseName,
+            nurseCoren: state.nurseCoren,
+            authorPhoto: state.authorPhoto
+          }));
+        } catch (e) {}
+      }
+
+      function saveState() {
+        saveProfile();
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ patients: state.patients, activeId: state.activeId }));
+        } catch (e) {}
+      }
+
+      function getP() {
+        const p = state.patients.find(x => x.id === state.activeId) || state.patients[0];
+        if (!p.vmi) p.vmi = { params: '', cuff: '', posTot: '', numTot: '' };
+        if (!Array.isArray(p.measuredScales)) p.measuredScales = ['glasgow'];
+        return p;
+      }
+
+      // ---------- AGE FROM DOB ----------
+      function calcAgeText(dobStr) {
+        if (!dobStr) return '';
+        const d = new Date(dobStr + 'T00:00:00');
+        if (isNaN(d.getTime())) return '';
+        const now = new Date();
+        let years = now.getFullYear() - d.getFullYear();
+        const m = now.getMonth() - d.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < d.getDate())) years--;
+        if (years < 0) return '';
+        if (years === 0) {
+          let months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+          if (now.getDate() < d.getDate()) months--;
+          return `${Math.max(0, months)} ${months === 1 ? 'mês' : 'meses'}`;
+        }
+        return `${years} ${years === 1 ? 'ano' : 'anos'}`;
+      }
+
+      function updateAgeBadge() {
+        const p = getP();
+        const age = calcAgeText(p.dob);
+        document.getElementById('calc-age-badge').textContent = `Idade: ${age || '--'}`;
+      }
+
+      // ---------- UI UTILS ----------
+      function toast(msg, err = false) {
+        const c = document.getElementById('toast-container');
+        const d = document.createElement('div');
+        d.className = `${err ? 'bg-rose-700' : 'navy-bg'} text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg transition-opacity duration-300`;
+        d.textContent = msg;
+        c.appendChild(d);
+        setTimeout(() => { d.classList.add('opacity-0'); setTimeout(() => d.remove(), 300); }, 2500);
+      }
+
+      function copyText(txt, okMsg) {
+        if (!txt || !txt.trim()) { toast('Nada para copiar ainda.', true); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(() => toast(okMsg)).catch(() => fallbackCopy(txt, okMsg));
+        } else { fallbackCopy(txt, okMsg); }
+      }
+
+      function fallbackCopy(txt, okMsg) {
+        const ta = document.createElement('textarea');
+        ta.value = txt; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); toast(okMsg); } catch (e) { toast('Erro ao copiar.', true); }
+        ta.remove();
+      }
+
+      function confirmModal(title, msg, onOk) {
+        const m = document.getElementById('confirm-modal');
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-message').textContent = msg;
+        m.classList.remove('hidden'); m.classList.add('flex');
+        const close = () => { m.classList.add('hidden'); m.classList.remove('flex'); };
+        document.getElementById('modal-cancel').onclick = close;
+        document.getElementById('modal-confirm').onclick = () => { close(); onOk(); };
+      }
+
+      function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      // ---------- SCALE CALCULATIONS ----------
+      function getScaleNumeric(id, p) {
+        const s = p.scales;
+        if (id === 'glasgow') return Math.max(1, Number(s.glasgow.ocular) + Number(s.glasgow.verbal) + Number(s.glasgow.motora) - Number(s.glasgow.pupilar));
+        if (id === 'rass') return Number(s.rass);
+        if (id === 'cincinnati') return s.cincinnati.face + s.cincinnati.arm + s.cincinnati.speech;
+        if (id === 'nihss') return s.nihss.reduce((a, b) => a + Number(b), 0);
+        if (id === 'braden') return Object.values(s.braden).reduce((a, x) => a + Number(x), 0);
+        if (id === 'morse') return Object.values(s.morse).reduce((a, x) => a + Number(x), 0);
+        if (id === 'news2') {
+          const v = p.vitals;
+          let sc = Number(s.news2.o2) + Number(s.news2.cons);
+          const fr = Number(v.fr); if (v.fr !== '') sc += (fr <= 8 || fr >= 25) ? 3 : fr <= 11 ? 1 : fr <= 20 ? 0 : 2;
+          const pas = Number(v.pas); if (v.pas !== '') sc += (pas <= 90 || pas >= 220) ? 3 : pas <= 100 ? 2 : pas <= 110 ? 1 : 0;
+          const fc = Number(v.fc); if (v.fc !== '') sc += (fc <= 40 || fc >= 131) ? 3 : fc <= 50 ? 1 : fc <= 90 ? 0 : fc <= 110 ? 1 : 2;
+          const tx = Number(v.tax); if (v.tax !== '') sc += tx <= 35 ? 3 : tx <= 36 ? 1 : tx <= 38 ? 0 : tx <= 39 ? 1 : 2;
+          const sp = Number(v.spo2);
+          if (v.spo2 !== '') {
+            if (Number(s.news2.spo2Scale) === 1) sc += sp <= 91 ? 3 : sp <= 93 ? 2 : sp <= 95 ? 1 : 0;
+            else sc += sp <= 83 ? 3 : sp <= 85 ? 2 : sp <= 87 ? 1 : sp <= 92 ? 0 : (Number(s.news2.o2) === 0 ? 0 : sp <= 94 ? 1 : sp <= 96 ? 2 : 3);
+          }
+          return sc;
+        }
+        if (id === 'qsofa') return s.qsofa.fr + s.qsofa.pas + s.qsofa.mental;
+        if (id === 'sofa') return Object.values(s.sofa).reduce((a, x) => a + Number(x), 0);
+        if (id === 'fugulin') return Object.values(s.fugulin).reduce((a, x) => a + Number(x), 0);
+        if (id === 'eva') return Number(s.eva);
+        if (id === 'bps') return s.bps.face + s.bps.upper + s.bps.vent;
+        if (id === 'adiva') return Object.values(s.adiva).reduce((a, x) => a + Number(x), 0);
+        return 0;
+      }
+
+      function getScaleSummary(id, p) {
+        const val = getScaleNumeric(id, p);
+        if (id === 'glasgow') return `${val}/15 (${val <= 8 ? 'Grave' : val <= 12 ? 'Moderado' : 'Leve'})`;
+        if (id === 'rass') return `RASS ${val > 0 ? '+' + val : val}`;
+        if (id === 'cincinnati') return `${val}/3 (${val > 0 ? 'Suspeita AVC' : 'Normal'})`;
+        if (id === 'nihss') return `${val}/42 pts`;
+        if (id === 'braden') return `${val}/23 (${val <= 9 ? 'Altíssimo Risco' : val <= 12 ? 'Alto Risco' : val <= 14 ? 'Risco Moderado' : val <= 18 ? 'Risco Leve' : 'Sem risco'})`;
+        if (id === 'morse') return `${val} pts (${val >= 45 ? 'Alto Risco' : val >= 25 ? 'Risco Moderado' : 'Baixo Risco'})`;
+        if (id === 'news2') return `${val} pts (${val >= 7 ? 'Alto Risco' : val >= 5 ? 'Risco Moderado' : 'Baixo Risco'})`;
+        if (id === 'qsofa') return `${val}/3 (${val >= 2 ? 'Alto Risco' : 'Baixo Risco'})`;
+        if (id === 'sofa') return `${val}/24 pts`;
+        if (id === 'fugulin') return `${val} pts (${val >= 31 ? 'Intensivo' : val >= 27 ? 'Semi-intensivo' : val >= 21 ? 'Alta Dep.' : val >= 15 ? 'Intermediário' : 'Mínimo'})`;
+        if (id === 'eva') return `${val}/10`;
+        if (id === 'bps') return `${val}/12 (${val >= 6 ? 'Dor Signif.' : 'Controlada'})`;
+        if (id === 'adiva') return `${val}/5 (${val >= 4 ? 'Alto Risco' : val >= 2 ? 'Moderado' : 'Baixo'})`;
+        return '';
+      }
+
+      function markScaleMeasured(p, id) {
+        if (!p.measuredScales.includes(id)) p.measuredScales.push(id);
+      }
+
+      function renderScaleRefBanners() {
+        const p = getP();
+        const items = SCALE_LIST.filter(sc => p.measuredScales.includes(sc.id));
+        const html = items.length === 0
+          ? '<strong>Escalas mensuradas:</strong> Nenhuma escala selecionada ainda na etapa 2.'
+          : `<strong>Escalas mensuradas (${items.length}):</strong> ` + items.map(sc => `<span class="inline-block bg-white border border-sky-200 rounded-lg px-2 py-0.5 mr-1 mt-1 font-semibold">${sc.name}: ${getScaleSummary(sc.id, p)}</span>`).join('');
+        document.querySelectorAll('.scales-ref-banner').forEach(el => { el.innerHTML = html; });
+      }
+
+      // ---------- INLINE SCALE WIDGETS (IN A) ----------
+      function buildInlineGlasgow(p) {
+        const g = p.scales.glasgow;
+        const wrap = document.createElement('div');
+        wrap.className = 'rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2.5';
+        wrap.innerHTML = `<div class="flex items-center justify-between gap-2"><span class="text-xs font-bold navy-text">Escala de Coma de Glasgow + Pupilas (ECG-P)</span><span class="px-2.5 py-0.5 rounded-lg navy-bg text-white text-xs font-bold">${getScaleSummary('glasgow', p)}</span></div>`;
+        const mkRow = (label, opts, val, setter) => {
+          const r = document.createElement('div');
+          r.innerHTML = `<div class="text-[11px] font-semibold text-slate-600 mb-1">${label}</div>`;
+          const gRow = document.createElement('div');
+          gRow.className = 'flex flex-wrap gap-1';
+          opts.forEach(o => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = o.l;
+            b.className = `px-2 py-1 rounded-lg text-[11px] border transition ${String(val) === String(o.v) ? 'chip-active' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+            b.addEventListener('click', () => { setter(o.v); markScaleMeasured(p, 'glasgow'); saveState(); renderABCDE(); });
+            gRow.appendChild(b);
+          });
+          r.appendChild(gRow);
+          return r;
+        };
+        wrap.appendChild(mkRow('Abertura Ocular', [{v:4,l:'4 Espontânea'},{v:3,l:'3 Verbal'},{v:2,l:'2 Dor'},{v:1,l:'1 Nenhuma'}], g.ocular, v => g.ocular = v));
+        wrap.appendChild(mkRow('Resposta Verbal', [{v:5,l:'5 Orientada'},{v:4,l:'4 Confusa'},{v:3,l:'3 Inapropriada'},{v:2,l:'2 Incompreensível'},{v:1,l:'1 Nenhuma'}], g.verbal, v => g.verbal = v));
+        wrap.appendChild(mkRow('Resposta Motora', [{v:6,l:'6 Obedece'},{v:5,l:'5 Localiza'},{v:4,l:'4 Retirada'},{v:3,l:'3 Flexão'},{v:2,l:'2 Extensão'},{v:1,l:'1 Nenhuma'}], g.motora, v => g.motora = v));
+        wrap.appendChild(mkRow('Reatividade Pupilar', [{v:0,l:'0 Ambas reativas'},{v:1,l:'-1 Uma reativa'},{v:2,l:'-2 Nenhuma reativa'}], g.pupilar, v => g.pupilar = v));
+        return wrap;
+      }
+
+      function buildInlineRASS(p) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 space-y-2';
+        wrap.innerHTML = `<div class="flex items-center justify-between gap-2"><span class="text-xs font-bold text-amber-950">Escala de RASS (Paciente Sedado)</span><span class="px-2.5 py-0.5 rounded-lg bg-amber-900 text-white text-xs font-bold">${getScaleSummary('rass', p)}</span></div>`;
+        const row = document.createElement('div');
+        row.className = 'flex flex-wrap gap-1';
+        [{v:4,l:'+4 Combativo'},{v:3,l:'+3 Muito agitado'},{v:2,l:'+2 Agitado'},{v:1,l:'+1 Inquieto'},{v:0,l:'0 Alerta/calmo'},{v:-1,l:'-1 Sonolento'},{v:-2,l:'-2 Sedação leve'},{v:-3,l:'-3 Sedação mod.'},{v:-4,l:'-4 Sedação prof.'},{v:-5,l:'-5 Não despertável'}].forEach(o => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = o.l;
+          b.className = `px-2 py-1 rounded-lg text-[11px] border transition ${String(p.scales.rass) === String(o.v) ? 'chip-active' : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100'}`;
+          b.addEventListener('click', () => { p.scales.rass = o.v; markScaleMeasured(p, 'rass'); saveState(); renderABCDE(); });
+          row.appendChild(b);
+        });
+        wrap.appendChild(row);
+        return wrap;
+      }
+
+      // ---------- RENDER ABCDE ----------
+      function renderABCDE() {
+        const p = getP();
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        const letterIcons = {
+          A: '<svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>',
+          B: '<svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>',
+          C: '<svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>',
+          D: '<svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>',
+          E: '<svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>'
+        };
+
+        const bar = document.getElementById('abcde-stepper-bar');
+        bar.innerHTML = '';
+        letters.forEach(L => {
+          const active = state.activeAbcde === L;
+          const cnt = (p.abcdeSelected[L] || []).length;
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = `relative py-2 px-1 rounded-xl text-center transition border flex flex-col items-center justify-center gap-1 ${active ? 'navy-bg text-white border-[#0B192C] shadow-sm' : 'bg-slate-50 text-slate-600 border-transparent hover:bg-slate-100'}`;
+          b.innerHTML = `<div class="text-sm font-extrabold leading-none">${L}</div><div class="opacity-90">${letterIcons[L]}</div>${cnt ? `<span class="absolute top-1 right-1 text-[9px] font-bold px-1 rounded-full ${active ? 'bg-white text-[#0B192C]' : 'bg-slate-200 text-slate-700'}">${cnt}</span>` : ''}`;
+          b.addEventListener('click', () => { state.activeAbcde = L; renderABCDE(); });
+          bar.appendChild(b);
+        });
+
+        const card = document.getElementById('abcde-single-card');
+        card.innerHTML = '';
+        const L = state.activeAbcde;
+        const titles = {
+          A: 'Avaliação Inicial (Estado Geral e Neurológico)',
+          B: 'Respiratório (Oxigenação e Ventilação)',
+          C: 'Circulação (Pele, Pressão, Pulso, Ausculta e DVA)',
+          D: 'Dieta, Dor, Dispositivos, Abdome e Drenos',
+          E: 'Exposição (Pele/Feridas, Eliminações, Segurança e Exames)'
+        };
+
+        const hdr = document.createElement('div');
+        hdr.className = 'flex items-center gap-2.5 pb-3 border-b border-slate-100';
+        hdr.innerHTML = `<span class="w-9 h-9 rounded-xl navy-bg text-white font-extrabold text-base flex items-center justify-center shrink-0">${L}</span><h3 class="text-sm sm:text-base font-bold text-slate-900">${titles[L]}</h3>`;
+        card.appendChild(hdr);
+
+        const toggleOpt = (opt) => {
+          const arr = p.abcdeSelected[L];
+          if (arr.includes(opt)) p.abcdeSelected[L] = arr.filter(x => x !== opt);
+          else arr.push(opt);
+          if (opt === SEDADO_LABEL && p.abcdeSelected.A.includes(SEDADO_LABEL)) markScaleMeasured(p, 'rass');
+          saveState();
+          renderABCDE();
+        };
+
+        const renderChipGroup = (opts) => {
+          const div = document.createElement('div');
+          div.className = 'flex flex-wrap gap-1.5';
+          opts.forEach(opt => {
+            const act = (p.abcdeSelected[L] || []).includes(opt);
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.textContent = opt;
+            btn.className = `px-3 py-1.5 rounded-xl text-xs border transition text-left ${act ? 'chip-active' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+            btn.addEventListener('click', () => toggleOpt(opt));
+            div.appendChild(btn);
+          });
+          return div;
+        };
+
+        if (L === 'A') {
+          const egWrap = document.createElement('div');
+          egWrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">1. Selecione o Estado Geral do Paciente:</div>`;
+          const egGrid = document.createElement('div');
+          egGrid.className = 'grid grid-cols-1 sm:grid-cols-3 gap-2';
+          Object.keys(A_STATES).forEach(st => {
+            const act = p.estadoGeral === st;
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = st;
+            b.className = `px-3 py-2.5 rounded-xl text-xs font-bold border transition ${act ? 'chip-active' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+            b.addEventListener('click', () => {
+              p.estadoGeral = st;
+              p.abcdeSelected.A = p.abcdeSelected.A.filter(x => A_STATES[st].includes(x));
+              saveState(); renderABCDE();
+            });
+            egGrid.appendChild(b);
+          });
+          egWrap.appendChild(egGrid);
+          card.appendChild(egWrap);
+
+          if (p.estadoGeral && A_STATES[p.estadoGeral]) {
+            const optWrap = document.createElement('div');
+            optWrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">2. Achados clínicos para ${p.estadoGeral}:</div>`;
+            optWrap.appendChild(renderChipGroup(A_STATES[p.estadoGeral]));
+            card.appendChild(optWrap);
+          }
+          card.appendChild(buildInlineGlasgow(p));
+          if ((p.abcdeSelected.A || []).includes(SEDADO_LABEL)) card.appendChild(buildInlineRASS(p));
+        } else if (L === 'B') {
+          const mWrap = document.createElement('div');
+          mWrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">1. Selecione o Suporte Ventilatório:</div>`;
+          const mGrid = document.createElement('div');
+          mGrid.className = 'grid grid-cols-1 sm:grid-cols-3 gap-2';
+          Object.keys(B_MODES).forEach(md => {
+            const act = p.respModo === md;
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = md;
+            b.className = `px-3 py-2.5 rounded-xl text-xs font-bold border transition ${act ? 'chip-active' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+            b.addEventListener('click', () => {
+              p.respModo = md;
+              p.abcdeSelected.B = md === VMI_LABEL ? [VMI_LABEL] : [];
+              saveState(); renderABCDE();
+            });
+            mGrid.appendChild(b);
+          });
+          mWrap.appendChild(mGrid);
+          card.appendChild(mWrap);
+
+          if (p.respModo && B_MODES[p.respModo]) {
+            const oWrap = document.createElement('div');
+            oWrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">2. Achados respiratórios (${p.respModo}):</div>`;
+            oWrap.appendChild(renderChipGroup(B_MODES[p.respModo]));
+            card.appendChild(oWrap);
+          }
+
+          // O2 Flow Field when Oxigenoterapia or any O2 option is selected
+          const hasO2 = p.respModo === O2_LABEL || (p.abcdeSelected.B || []).some(x => x.includes('O2') || x.includes('VNI'));
+          if (hasO2) {
+            const o2Box = document.createElement('div');
+            o2Box.className = 'p-3.5 rounded-xl border border-teal-200 bg-teal-50/70 space-y-2';
+            o2Box.innerHTML = `
+              <div class="text-xs font-bold text-teal-900">Fluxo de Oxigênio (L/min)</div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${['1','2','3','4','5','6','8','10','12','15'].map(fl => `<button type="button" data-o2f="${fl}" class="o2-flow-btn px-2.5 py-1 rounded-lg text-xs border ${String(p.o2Fluxo) === fl ? 'chip-active' : 'bg-white text-slate-700 border-teal-200 hover:bg-teal-100'}">${fl} L/min</button>`).join('')}
+                <input id="inp-o2-fluxo" type="number" step="0.5" min="0" value="${esc(p.o2Fluxo)}" placeholder="Outro (L/min)" class="w-28 px-2.5 py-1 text-xs rounded-lg border border-teal-300 bg-white outline-none" />
+              </div>
+            `;
+            o2Box.querySelectorAll('.o2-flow-btn').forEach(btn => {
+              btn.addEventListener('click', () => { p.o2Fluxo = btn.dataset.o2f; saveState(); renderABCDE(); });
+            });
+            o2Box.querySelector('#inp-o2-fluxo').addEventListener('input', e => { p.o2Fluxo = e.target.value; saveState(); });
+            card.appendChild(o2Box);
+          }
+
+          if (p.respModo === VMI_LABEL || (p.abcdeSelected.B || []).includes(VMI_LABEL)) {
+            const vmiBox = document.createElement('div');
+            vmiBox.className = 'p-3.5 rounded-xl border border-sky-200 bg-sky-50/70 space-y-2.5';
+            vmiBox.innerHTML = `
+              <div class="text-xs font-bold text-sky-900">Parâmetros da VMI &amp; Tubo Orotraqueal (TOT)</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <div><label class="block text-[11px] font-semibold text-slate-700 mb-1">Parâmetros ventilatórios</label><input type="text" data-vmi="params" value="${esc(p.vmi.params)}" placeholder="PCV, FiO2 40%, PEEP 6" class="vmi-inp w-full px-2.5 py-1.5 text-xs rounded-lg border border-sky-200 bg-white outline-none" /></div>
+                <div><label class="block text-[11px] font-semibold text-slate-700 mb-1">Pressão do Cuff</label><input type="text" data-vmi="cuff" value="${esc(p.vmi.cuff)}" placeholder="25 cmH2O" class="vmi-inp w-full px-2.5 py-1.5 text-xs rounded-lg border border-sky-200 bg-white outline-none" /></div>
+                <div><label class="block text-[11px] font-semibold text-slate-700 mb-1">Posicionamento do TOT</label><input type="text" data-vmi="posTot" value="${esc(p.vmi.posTot)}" placeholder="22 cm na rima" class="vmi-inp w-full px-2.5 py-1.5 text-xs rounded-lg border border-sky-200 bg-white outline-none" /></div>
+                <div><label class="block text-[11px] font-semibold text-slate-700 mb-1">Número do TOT</label><input type="text" data-vmi="numTot" value="${esc(p.vmi.numTot)}" placeholder="8.0" class="vmi-inp w-full px-2.5 py-1.5 text-xs rounded-lg border border-sky-200 bg-white outline-none" /></div>
+              </div>
+            `;
+            vmiBox.querySelectorAll('.vmi-inp').forEach(inp => inp.addEventListener('input', e => { p.vmi[e.target.dataset.vmi] = e.target.value; saveState(); }));
+            card.appendChild(vmiBox);
+          }
+        } else if (L === 'C') {
+          const cWrap = document.createElement('div');
+          cWrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">1. Selecione o Perfil Hemodinâmico:</div>`;
+          const cGrid = document.createElement('div');
+          cGrid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2';
+          Object.keys(C_PROFILES).forEach(pf => {
+            const act = p.hemoPerfil === pf;
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = pf;
+            b.className = `px-3 py-2.5 rounded-xl text-xs font-bold border transition ${act ? 'chip-active' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+            b.addEventListener('click', () => {
+              p.hemoPerfil = pf;
+              p.abcdeSelected.C = p.abcdeSelected.C.filter(x => C_PROFILES[pf].includes(x));
+              saveState(); renderABCDE();
+            });
+            cGrid.appendChild(b);
+          });
+          cWrap.appendChild(cGrid);
+          card.appendChild(cWrap);
+
+          if (p.hemoPerfil && C_PROFILES[p.hemoPerfil]) {
+            const oWrap = document.createElement('div');
+            oWrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">2. Pele, pressão, pulso, ausculta cardíaca e suporte:</div>`;
+            oWrap.appendChild(renderChipGroup(C_PROFILES[p.hemoPerfil]));
+            card.appendChild(oWrap);
+          }
+        } else if (L === 'D' || L === 'E') {
+          (L === 'D' ? D_GROUPS : E_GROUPS).forEach(g => {
+            const gWrap = document.createElement('div');
+            gWrap.className = 'p-3 rounded-xl border border-slate-100 bg-slate-50/60 space-y-2';
+            gWrap.innerHTML = `<div class="text-xs font-bold navy-text">${g.sub}</div>`;
+            gWrap.appendChild(renderChipGroup(g.opts));
+            card.appendChild(gWrap);
+          });
+        }
+
+        const extraWrap = document.createElement('div');
+        extraWrap.innerHTML = `<label class="block text-[11px] font-semibold text-slate-500 mb-1">Informações adicionais (${L})</label><input type="text" value="${esc(p.abcdeExtra[L] || '')}" placeholder="Detalhes complementares para a evolução..." class="abcde-extra w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-800 outline-none" />`;
+        extraWrap.querySelector('.abcde-extra').addEventListener('input', e => { p.abcdeExtra[L] = e.target.value; saveState(); });
+        card.appendChild(extraWrap);
+
+        const idx = letters.indexOf(L);
+        const nav = document.createElement('div');
+        nav.className = 'flex items-center justify-between pt-3 border-t border-slate-100 gap-2';
+
+        if (idx > 0) {
+          const prev = document.createElement('button');
+          prev.type = 'button';
+          prev.className = 'inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50';
+          prev.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg><span>Anterior (${letters[idx - 1]})</span>`;
+          prev.addEventListener('click', () => { state.activeAbcde = letters[idx - 1]; renderABCDE(); });
+          nav.appendChild(prev);
+        } else {
+          nav.appendChild(document.createElement('div'));
+        }
+
+        if (idx < letters.length - 1) {
+          const next = document.createElement('button');
+          next.type = 'button';
+          next.className = 'inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-95';
+          next.innerHTML = `<span>Concluir ${L} → Ir para ${letters[idx + 1]}</span><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`;
+          next.addEventListener('click', () => { state.activeAbcde = letters[idx + 1]; renderABCDE(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+          nav.appendChild(next);
+        } else {
+          const fin = document.createElement('button');
+          fin.type = 'button';
+          fin.className = 'inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl navy-bg text-white text-xs sm:text-sm font-bold hover:opacity-95';
+          fin.innerHTML = `<span>Concluir Avaliação → Diagnósticos</span><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>`;
+          fin.addEventListener('click', () => { autoSuggestIdsFromABCDE(); renderSteps345(); switchTab('diagnosticos'); toast('Avaliação ABCDE concluída!'); });
+          nav.appendChild(fin);
+        }
+
+        card.appendChild(nav);
+      }
+
+      // ---------- STEPS 3, 4, 5 ----------
+      function autoSuggestIdsFromABCDE() {
+        const p = getP();
+        const allTags = Object.values(p.abcdeSelected).flat();
+        const dxIds = [];
+        DX_CATALOG.forEach(dx => { if (dx.tags.some(t => allTags.includes(t))) dxIds.push(dx.id); });
+
+        // Also integrate measured scales into Diagnostic suggestions!
+        if (p.measuredScales.includes('braden') && getScaleNumeric('braden', p) <= 18 && !dxIds.includes('dx_lp')) dxIds.push('dx_lp');
+        if (p.measuredScales.includes('morse') && getScaleNumeric('morse', p) >= 25 && !dxIds.includes('dx_queda')) dxIds.push('dx_queda');
+        if (p.measuredScales.includes('news2') && getScaleNumeric('news2', p) >= 5 && !dxIds.includes('dx_choque')) dxIds.push('dx_choque');
+        if (p.measuredScales.includes('qsofa') && getScaleNumeric('qsofa', p) >= 2 && !dxIds.includes('dx_choque')) dxIds.push('dx_choque');
+        if (p.measuredScales.includes('eva') && getScaleNumeric('eva', p) >= 4 && !dxIds.includes('dx_dor')) dxIds.push('dx_dor');
+        if (p.measuredScales.includes('bps') && getScaleNumeric('bps', p) >= 6 && !dxIds.includes('dx_dor')) dxIds.push('dx_dor');
+
+        if (dxIds.length === 0) dxIds.push('dx_infeccao');
+        p.selectedDxIds = dxIds;
+
+        p.selectedResIds = ['res_hemo', 'res_resp', 'res_inf', 'res_queda'];
+        p.selectedPrescIds = ['pr_ssvv', 'pr_disp', 'pr_queda'];
+        if (dxIds.includes('dx_choque')) p.selectedPrescIds.push('pr_dva', 'pr_bh');
+        if (dxIds.includes('dx_troca')) p.selectedPrescIds.push('pr_o2');
+        if (dxIds.includes('dx_neuro')) { p.selectedResIds.push('res_neuro'); p.selectedPrescIds.push('pr_neuro'); }
+        if (dxIds.includes('dx_dor')) { p.selectedResIds.push('res_dor'); p.selectedPrescIds.push('pr_dor'); }
+        if (dxIds.includes('dx_hiper')) { p.selectedResIds.push('res_temp'); p.selectedPrescIds.push('pr_febre'); }
+        if (dxIds.includes('dx_lp')) { p.selectedResIds.push('res_pele'); p.selectedPrescIds.push('pr_lp'); }
+        if (dxIds.includes('dx_gastro')) p.selectedResIds.push('res_gastro');
+        p.selectedResIds = [...new Set(p.selectedResIds)];
+        p.selectedPrescIds = [...new Set(p.selectedPrescIds)];
+        saveState();
+      }
+
+      function renderSelectableStep(containerId, catalog, selectedArr, onToggle, renderTextFn) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        catalog.forEach(item => {
+          const checked = selectedArr.includes(item.id);
+          const card = document.createElement('label');
+          card.className = `flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition ${checked ? 'border-slate-900 bg-slate-100/70' : 'border-slate-200 bg-white hover:bg-slate-50'}`;
+          card.innerHTML = `<input type="checkbox" ${checked ? 'checked' : ''} class="mt-0.5 w-4 h-4 accent-[#0B192C] rounded shrink-0" /><div class="text-xs sm:text-sm text-slate-800 leading-snug">${renderTextFn(item)}</div>`;
+          card.querySelector('input').addEventListener('change', () => onToggle(item.id));
+          container.appendChild(card);
+        });
+      }
+
+      function renderSteps345() {
+        const p = getP();
+        renderScaleRefBanners();
+        renderSelectableStep('dx-options-list', DX_CATALOG, p.selectedDxIds, id => {
+          if (p.selectedDxIds.includes(id)) p.selectedDxIds = p.selectedDxIds.filter(x => x !== id);
+          else p.selectedDxIds.push(id);
+          saveState(); renderSteps345();
+        }, d => `<div class="font-bold text-slate-900">${esc(d.titulo)}</div><div class="text-[11px] text-slate-500 mt-0.5">Relacionado a ${esc(d.fator)}</div>`);
+
+        renderSelectableStep('res-options-list', RES_CATALOG, p.selectedResIds, id => {
+          if (p.selectedResIds.includes(id)) p.selectedResIds = p.selectedResIds.filter(x => x !== id);
+          else p.selectedResIds.push(id);
+          saveState(); renderSteps345();
+        }, r => esc(r.text));
+
+        renderSelectableStep('presc-options-list', PRESC_CATALOG, p.selectedPrescIds, id => {
+          if (p.selectedPrescIds.includes(id)) p.selectedPrescIds = p.selectedPrescIds.filter(x => x !== id);
+          else p.selectedPrescIds.push(id);
+          saveState(); renderSteps345();
+        }, pr => esc(pr.text));
+
+        document.getElementById('txt-diagnosticos').value = p.txtDiagnosticos || '';
+        document.getElementById('txt-resultados').value = p.txtResultados || '';
+        document.getElementById('txt-prescricao').value = p.txtPrescricao || '';
+        document.getElementById('txt-evolucao').value = p.txtEvolucao || '';
+        renderEvoFormattedPreview();
+      }
+
+      function generateDxText() {
+        const p = getP();
+        const sel = DX_CATALOG.filter(d => p.selectedDxIds.includes(d.id));
+        if (sel.length === 0) { toast('Selecione ao menos um diagnóstico.', true); return; }
+        p.txtDiagnosticos = sel.map((d, i) => `${i + 1}. ${d.titulo}, relacionado a ${d.fator}, evidenciado por ${d.carac}.`).join('\n');
+        saveState(); document.getElementById('txt-diagnosticos').value = p.txtDiagnosticos;
+        toast('Diagnósticos de Enfermagem gerados!');
+      }
+
+      function generateResText() {
+        const p = getP();
+        const sel = RES_CATALOG.filter(r => p.selectedResIds.includes(r.id));
+        if (sel.length === 0) { toast('Selecione ao menos um resultado esperado.', true); return; }
+        p.txtResultados = sel.map((r, i) => `${i + 1}. ${r.text}`).join('\n');
+        saveState(); document.getElementById('txt-resultados').value = p.txtResultados;
+        toast('Resultados Esperados gerados!');
+      }
+
+      function generatePrescText() {
+        const p = getP();
+        const sel = PRESC_CATALOG.filter(pr => p.selectedPrescIds.includes(pr.id));
+        if (sel.length === 0) { toast('Selecione ao menos um item de prescrição.', true); return; }
+        p.txtPrescricao = sel.map((pr, i) => `${i + 1}. ${pr.text}`).join('\n');
+        saveState(); document.getElementById('txt-prescricao').value = p.txtPrescricao;
+        toast('Prescrição de Enfermagem gerada!');
+      }
+
+      // ---------- EVOLUÇÃO (NORMA CULTA, JUSTIFICADA, ASSINATURA CENTRALIZADA) ----------
+      function formatPhraseList(arr) {
+        if (!arr || arr.length === 0) return '';
+        if (arr.length === 1) return arr[0];
+        return arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
+      }
+
+      function preserveAcronymsLower(txt) {
+        if (!txt) return '';
+        let out = txt.toLowerCase();
+        const acronyms = ['VMI','VNI','TOT','TQT','DVA','AVC','PICC','SVD','SNE','SNG','GTT','AVP','BRNF','RHA','EVA','BPS','O2','RX','TC','USG','ECG','BEG','REG','MEG','2T','MMII'];
+        acronyms.forEach(ac => {
+          const re = new RegExp('\\b' + ac.toLowerCase() + '\\b', 'g');
+          out = out.replace(re, ac);
+        });
+        out = out.replace(/\(([^)]+)\)/g, (_, inner) => '(' + inner.toUpperCase() + ')');
+        out = out.replace(/\s*[-–—]\s*/g, '-');
+        return out;
+      }
+
+      function generateEvolutionProse() {
+        const p = getP();
+        const now = new Date();
+        const dt = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const ageTxt = calcAgeText(p.dob);
+        const paras = [];
+
+        const aSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.A));
+        const aExt = (p.abcdeExtra.A || '').trim();
+        const rassPart = (p.abcdeSelected.A || []).includes(SEDADO_LABEL) ? ` e ${getScaleSummary('rass', p)}` : '';
+        const egTxt = p.estadoGeral ? preserveAcronymsLower(p.estadoGeral) : 'estado geral sob vigilância';
+        paras.push(`Em ${dt}, procedeu-se à avaliação de enfermagem do(a) paciente ${p.nome || 'sem identificação informada'}${ageTxt ? ', com ' + ageTxt : ''}, alocado(a) em ${p.leito || 'setor não especificado'}${p.hipotese ? ', com hipótese diagnóstica de ' + p.hipotese : ''}. Na avaliação inicial e neurológica, apresenta-se em ${egTxt}${aSel ? ', ' + aSel : ''}, obtendo pontuação ${getScaleSummary('glasgow', p)} na Escala de Coma de Glasgow com Pupilas (ECG-P)${rassPart}${aExt ? '; ' + aExt : ''}.`);
+
+        const bSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.B));
+        const bExt = (p.abcdeExtra.B || '').trim();
+        const o2Txt = p.o2Fluxo ? `, com fluxo de O2 de ${p.o2Fluxo} L/min` : '';
+        let vmiTxt = '';
+        if (p.respModo === VMI_LABEL || (p.abcdeSelected.B || []).includes(VMI_LABEL)) {
+          const vp = [];
+          if (p.vmi.numTot) vp.push(`TOT nº ${p.vmi.numTot}`);
+          if (p.vmi.posTot) vp.push(`fixado em ${p.vmi.posTot}`);
+          if (p.vmi.cuff) vp.push(`pressão de cuff de ${p.vmi.cuff}`);
+          if (p.vmi.params) vp.push(`parâmetros ventilatórios de ${p.vmi.params}`);
+          if (vp.length) vmiTxt = `, mantendo ${vp.join(', ')}`;
+        }
+        paras.push(`No que se refere ao padrão respiratório e à ventilação, o(a) paciente encontra-se ${bSel || 'sem alterações ventilatórias agudas registradas'}${o2Txt}${vmiTxt}${p.vitals.fr ? `, com frequência respiratória de ${p.vitals.fr} irpm` : ''}${p.vitals.spo2 ? ` e saturação periférica de oxigênio (SpO2) de ${p.vitals.spo2}%` : ''}${bExt ? '; ' + bExt : ''}.`);
+
+        const cSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.C));
+        const cExt = (p.abcdeExtra.C || '').trim();
+        const hemoVitals = [];
+        if (p.vitals.pas || p.vitals.pad) hemoVitals.push(`PA de ${p.vitals.pas || '--'}x${p.vitals.pad || '--'} mmHg`);
+        if (p.vitals.fc) hemoVitals.push(`FC de ${p.vitals.fc} bpm`);
+        if (p.vitals.tax) hemoVitals.push(`Tax de ${p.vitals.tax} °C`);
+        if (p.vitals.dextro) hemoVitals.push(`glicemia capilar de ${p.vitals.dextro} mg/dL`);
+        paras.push(`Quanto à avaliação circulatória e hemodinâmica, evidencia-se ${cSel || 'parâmetros circulatórios monitorizados'}${hemoVitals.length ? ', registrando-se ' + formatPhraseList(hemoVitals) : ''}${cExt ? '; ' + cExt : ''}.`);
+
+        const dSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.D));
+        const dExt = (p.abcdeExtra.D || '').trim();
+        paras.push(`Em relação à dieta, à dor, aos dispositivos, à avaliação abdominal e aos drenos, verifica-se ${dSel || 'condições digestivas e dispositivos sob acompanhamento'}${dExt ? '; ' + dExt : ''}.`);
+
+        const eSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.E));
+        const eExt = (p.abcdeExtra.E || '').trim();
+        paras.push(`No tocante à exposição, à integridade cutânea, às eliminações, à segurança e aos exames, observa-se ${eSel || 'integridade cutânea, eliminações e exames sob acompanhamento'}${eExt ? '; ' + eExt : ''}.`);
+
+        const extraScales = SCALE_LIST.filter(sc => sc.id !== 'glasgow' && sc.id !== 'rass' && p.measuredScales.includes(sc.id));
+        const scalesSentence = extraScales.length > 0
+          ? `Na estratificação complementar por escalas assistenciais, registraram-se ${formatPhraseList(extraScales.map(sc => `${sc.name}: ${getScaleSummary(sc.id, p)}`))}. `
+          : '';
+        paras.push(`${scalesSentence}Foi aplicada a Sistematização da Assistência de Enfermagem (SAE) em conformidade com a Resolução COFEN nº 736/2024, com diagnósticos, resultados esperados e prescrições de enfermagem instituídos para o plantão, mantendo-se o(a) paciente sob cuidados contínuos da equipe.`);
+
+        const nName = (state.nurseName || '').trim() || 'Enfermeiro(a) Responsável';
+        const nCoren = (state.nurseCoren || '').trim() || 'COREN-UF';
+        const joinDashes = (str) => String(str || '')
+          .replace(/RASS\s+-\s*(\d)/g, 'RASS__NEG__$1')
+          .replace(/\s*[-–—]+\s*/g, '-')
+          .replace(/RASS__NEG__(\d)/g, 'RASS -$1')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+        const cleanParas = paras.map(pr => '    ' + joinDashes(pr));
+        p.txtEvolucao = cleanParas.join('\n') + `\n\n__________________________________________________\nAssinatura e Carimbo\n${nName}, ${nCoren}`;
+        saveState();
+        document.getElementById('txt-evolucao').value = p.txtEvolucao;
+        renderEvoFormattedPreview();
+        toast('Evolução de Enfermagem gerada!');
+      }
+
+      function buildEvolutionHtml(rawText) {
+        if (!rawText || !rawText.trim()) return '<p class="text-slate-400 text-xs">Evolução ainda não gerada.</p>';
+        const lines = rawText.split('\n');
+        const sigIdx = lines.findIndex(l => l.includes('_____'));
+        const bodyLines = sigIdx >= 0 ? lines.slice(0, sigIdx).filter(l => l.trim()) : lines.filter(l => l.trim());
+        const sigLines = sigIdx >= 0 ? lines.slice(sigIdx).filter(l => l.trim()) : [];
+        let html = bodyLines.map(l => `<p class="evo-paragraph">${esc(l.trim())}</p>`).join('');
+        if (sigLines.length > 0) {
+          html += `<div style="text-align:center;margin-top:24px;">${sigLines.map(sl => `<div>${esc(sl)}</div>`).join('')}</div>`;
+        }
+        return html;
+      }
+
+      function renderEvoFormattedPreview() {
+        const p = getP();
+        document.getElementById('evo-formatted-preview').innerHTML = buildEvolutionHtml(p.txtEvolucao);
+      }
+
+      // ---------- SCALES UI (WITH SELECTION TOGGLE) ----------
+      function renderScalesPanel() {
+        const p = getP();
+        const sumEl = document.getElementById('selected-scales-summary');
+        const measured = SCALE_LIST.filter(sc => p.measuredScales.includes(sc.id));
+        sumEl.innerHTML = measured.length === 0
+          ? `<div class="text-xs text-slate-500">Nenhuma escala selecionada. Clique em qualquer escala abaixo para aplicar e incluir na SAE.</div>`
+          : `<div class="text-xs font-bold text-slate-700 mb-1.5">Escalas selecionadas para este paciente (${measured.length}):</div>
+             <div class="flex flex-wrap gap-1.5">${measured.map(sc => `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs font-semibold">${sc.name}: ${getScaleSummary(sc.id, p)}</span>`).join('')}</div>`;
+
+        const pills = document.getElementById('scale-selector-pills');
+        pills.innerHTML = '';
+        SCALE_LIST.forEach(sc => {
+          const active = state.activeScale === sc.id;
+          const isMeasured = p.measuredScales.includes(sc.id);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `px-3 py-1.5 rounded-xl text-xs border transition inline-flex items-center gap-1.5 ${active ? 'chip-active' : isMeasured ? 'bg-sky-50 text-sky-900 border-sky-300 font-semibold' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`;
+          btn.innerHTML = `<span>${isMeasured ? '✓ ' : ''}${sc.name}</span><span class="opacity-75 font-normal">(${getScaleSummary(sc.id, p)})</span>`;
+          btn.addEventListener('click', () => { state.activeScale = sc.id; renderScalesPanel(); });
+          pills.appendChild(btn);
+        });
+
+        const card = document.getElementById('active-scale-card');
+        const id = state.activeScale;
+        const s = p.scales;
+        const isMeasured = p.measuredScales.includes(id);
+
+        const buildBtnGroup = (title, options, currentVal, onPick) => {
+          const wrap = document.createElement('div');
+          wrap.className = 'border border-slate-100 rounded-xl p-3 bg-slate-50/70';
+          wrap.innerHTML = `<div class="text-xs font-bold text-slate-700 mb-2">${title}</div>`;
+          const row = document.createElement('div');
+          row.className = 'flex flex-wrap gap-1.5';
+          options.forEach(o => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = o.l;
+            b.className = `px-2.5 py-1.5 rounded-lg text-xs border transition ${String(currentVal) === String(o.v) ? 'chip-active' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+            b.addEventListener('click', () => { onPick(o.v); markScaleMeasured(p, id); saveState(); renderScalesPanel(); renderScaleRefBanners(); });
+            row.appendChild(b);
+          });
+          wrap.appendChild(row);
+          return wrap;
+        };
+
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-200">
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-extrabold navy-text">${SCALE_LIST.find(x => x.id === id).name}</h3>
+              <button id="btn-toggle-scale-sae" type="button" class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${isMeasured ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'}">
+                <span>${isMeasured ? '✓ Incluída na SAE' : '+ Incluir na SAE'}</span>
+              </button>
+            </div>
+            <span class="px-3 py-1 rounded-xl navy-bg text-white text-xs font-bold">Resultado: ${getScaleSummary(id, p)}</span>
+          </div>`;
+
+        card.querySelector('#btn-toggle-scale-sae').addEventListener('click', () => {
+          const scName = SCALE_LIST.find(x => x.id === id).name;
+          if (p.measuredScales.includes(id)) {
+            p.measuredScales = p.measuredScales.filter(x => x !== id);
+            toast(`${scName} removida da SAE.`);
+          } else {
+            markScaleMeasured(p, id);
+            toast(`${scName} (${getScaleSummary(id, p)}) incluída na SAE!`);
+          }
+          saveState(); renderScalesPanel(); renderScaleRefBanners();
+        });
+
+        const body = document.createElement('div');
+        body.className = 'space-y-3';
+
+        if (id === 'glasgow') {
+          body.appendChild(buildBtnGroup('Abertura Ocular', [{v:4,l:'4 Espontânea'},{v:3,l:'3 Verbal'},{v:2,l:'2 Dor/Pressão'},{v:1,l:'1 Nenhuma'}], s.glasgow.ocular, v => s.glasgow.ocular = v));
+          body.appendChild(buildBtnGroup('Resposta Verbal', [{v:5,l:'5 Orientada'},{v:4,l:'4 Confusa'},{v:3,l:'3 Inapropriada'},{v:2,l:'2 Incompreensível'},{v:1,l:'1 Nenhuma'}], s.glasgow.verbal, v => s.glasgow.verbal = v));
+          body.appendChild(buildBtnGroup('Resposta Motora', [{v:6,l:'6 Obedece'},{v:5,l:'5 Localiza'},{v:4,l:'4 Retirada'},{v:3,l:'3 Flexão anormal'},{v:2,l:'2 Extensão'},{v:1,l:'1 Nenhuma'}], s.glasgow.motora, v => s.glasgow.motora = v));
+          body.appendChild(buildBtnGroup('Reatividade Pupilar (subtrai)', [{v:0,l:'0 Ambas reativas'},{v:1,l:'-1 Uma reativa'},{v:2,l:'-2 Nenhuma reativa'}], s.glasgow.pupilar, v => s.glasgow.pupilar = v));
+        } else if (id === 'rass') {
+          body.appendChild(buildBtnGroup('Escala de Agitação e Sedação de Richmond (RASS)', [{v:4,l:'+4 Combativo'},{v:3,l:'+3 Muito agitado'},{v:2,l:'+2 Agitado'},{v:1,l:'+1 Inquieto'},{v:0,l:'0 Alerta e calmo'},{v:-1,l:'-1 Sonolento'},{v:-2,l:'-2 Sedação leve'},{v:-3,l:'-3 Sedação moderada'},{v:-4,l:'-4 Sedação profunda'},{v:-5,l:'-5 Não despertável'}], s.rass, v => s.rass = v));
+        } else if (id === 'cincinnati') {
+          body.appendChild(buildBtnGroup('1. Assimetria Facial', [{v:0,l:'0 Normal'},{v:1,l:'1 Alterada'}], s.cincinnati.face, v => s.cincinnati.face = v));
+          body.appendChild(buildBtnGroup('2. Queda do Braço (10s)', [{v:0,l:'0 Normal'},{v:1,l:'1 Alterada'}], s.cincinnati.arm, v => s.cincinnati.arm = v));
+          body.appendChild(buildBtnGroup('3. Fala Anormal', [{v:0,l:'0 Normal'},{v:1,l:'1 Alterada'}], s.cincinnati.speech, v => s.cincinnati.speech = v));
+        } else if (id === 'nihss') {
+          [
+            ['1a. Nível de Consciência', [{v:0,l:'0 Alerta'},{v:1,l:'1 Sonolento'},{v:2,l:'2 Estupor'},{v:3,l:'3 Coma'}]],
+            ['1b. Perguntas (Mês e Idade)', [{v:0,l:'0 Ambas certas'},{v:1,l:'1 Uma certa'},{v:2,l:'2 Nenhuma'}]],
+            ['1c. Comandos', [{v:0,l:'0 Ambos'},{v:1,l:'1 Um'},{v:2,l:'2 Nenhum'}]],
+            ['2. Olhar Conjugado', [{v:0,l:'0 Normal'},{v:1,l:'1 Paralisia parcial'},{v:2,l:'2 Desvio forçado'}]],
+            ['3. Campos Visuais', [{v:0,l:'0 Sem perda'},{v:1,l:'1 Hemianopsia parcial'},{v:2,l:'2 Completa'},{v:3,l:'3 Bilateral'}]],
+            ['4. Paralisia Facial', [{v:0,l:'0 Normal'},{v:1,l:'1 Menor'},{v:2,l:'2 Parcial'},{v:3,l:'3 Completa'}]],
+            ['5. Motor Braços', [{v:0,l:'0 Sem queda'},{v:1,l:'1 Queda parcial'},{v:2,l:'2 Algum esforço'},{v:3,l:'3 Sem esforço'},{v:4,l:'4 Sem mov.'}]],
+            ['6. Motor Pernas', [{v:0,l:'0 Sem queda'},{v:1,l:'1 Queda parcial'},{v:2,l:'2 Algum esforço'},{v:3,l:'3 Sem esforço'},{v:4,l:'4 Sem mov.'}]],
+            ['7. Ataxia de Membros', [{v:0,l:'0 Ausente'},{v:1,l:'1 Um membro'},{v:2,l:'2 Dois membros'}]],
+            ['8. Sensibilidade', [{v:0,l:'0 Normal'},{v:1,l:'1 Perda leve'},{v:2,l:'2 Perda grave'}]],
+            ['9/10/11. Linguagem, Disartria & Extinção', [{v:0,l:'0 Normal'},{v:2,l:'2 Leve/Moderada'},{v:4,l:'4 Grave/Global'},{v:6,l:'6 Mudo/Anartria'}]]
+          ].forEach((it, idx) => body.appendChild(buildBtnGroup(it[0], it[1], s.nihss[idx], v => s.nihss[idx] = v)));
+        } else if (id === 'braden') {
+          [
+            ['sensorial','Percepção Sensorial',[{v:1,l:'1 Total lim.'},{v:2,l:'2 Muito lim.'},{v:3,l:'3 Levemente'},{v:4,l:'4 Nenhuma'}]],
+            ['umidade','Umidade',[{v:1,l:'1 Compl. molhada'},{v:2,l:'2 Muito'},{v:3,l:'3 Ocasionalmente'},{v:4,l:'4 Raramente'}]],
+            ['atividade','Atividade',[{v:1,l:'1 Acamado'},{v:2,l:'2 Cadeira'},{v:3,l:'3 Anda ocas.'},{v:4,l:'4 Anda freq.'}]],
+            ['mobilidade','Mobilidade',[{v:1,l:'1 Imóvel'},{v:2,l:'2 Bastante lim.'},{v:3,l:'3 Levemente'},{v:4,l:'4 Sem lim.'}]],
+            ['nutricao','Nutrição',[{v:1,l:'1 Muito pobre'},{v:2,l:'2 Inadequada'},{v:3,l:'3 Adequada'},{v:4,l:'4 Excelente'}]],
+            ['friccao','Fricção e Cisalhamento',[{v:1,l:'1 Problema'},{v:2,l:'2 Potencial'},{v:3,l:'3 Nenhum'}]]
+          ].forEach(x => body.appendChild(buildBtnGroup(x[1], x[2], s.braden[x[0]], v => s.braden[x[0]] = v)));
+        } else if (id === 'morse') {
+          [
+            ['hist','Histórico de Quedas (3 meses)',[{v:0,l:'Não (0)'},{v:25,l:'Sim (+25)'}]],
+            ['diag','Diagnóstico Secundário',[{v:0,l:'Não (0)'},{v:15,l:'Sim (+15)'}]],
+            ['aux','Auxílio na Deambulação',[{v:0,l:'Nenhum/Acamado (0)'},{v:15,l:'Muleta/Bengala (+15)'},{v:30,l:'Mobiliário (+30)'}]],
+            ['iv','Terapia IV / Dispositivo',[{v:0,l:'Não (0)'},{v:20,l:'Sim (+20)'}]],
+            ['marcha','Marcha',[{v:0,l:'Normal/Acamado (0)'},{v:10,l:'Fraca (+10)'},{v:20,l:'Comprometida (+20)'}]],
+            ['mental','Estado Mental',[{v:0,l:'Orientado (0)'},{v:15,l:'Esquece limitações (+15)'}]]
+          ].forEach(x => body.appendChild(buildBtnGroup(x[1], x[2], s.morse[x[0]], v => s.morse[x[0]] = v)));
+        } else if (id === 'news2') {
+          body.appendChild(buildBtnGroup('Escala SpO2', [{v:1,l:'Escala 1 (Padrão)'},{v:2,l:'Escala 2 (Retentor CO2)'}], s.news2.spo2Scale, v => s.news2.spo2Scale = v));
+          body.appendChild(buildBtnGroup('O2 Suplementar', [{v:0,l:'Ar ambiente (0)'},{v:2,l:'O2 suplementar (+2)'}], s.news2.o2, v => s.news2.o2 = v));
+          body.appendChild(buildBtnGroup('Consciência (ACVPU)', [{v:0,l:'Alerta (0)'},{v:3,l:'Alterada / Confusão (+3)'}], s.news2.cons, v => s.news2.cons = v));
+        } else if (id === 'qsofa') {
+          body.appendChild(buildBtnGroup('FR ≥ 22 irpm', [{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}], s.qsofa.fr, v => s.qsofa.fr = v));
+          body.appendChild(buildBtnGroup('PAS ≤ 100 mmHg', [{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}], s.qsofa.pas, v => s.qsofa.pas = v));
+          body.appendChild(buildBtnGroup('Alteração Mental', [{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}], s.qsofa.mental, v => s.qsofa.mental = v));
+        } else if (id === 'sofa') {
+          [
+            ['resp','Respiração (PaO2/FiO2)',[{v:0,l:'0 ≥400'},{v:1,l:'1 <400'},{v:2,l:'2 <300'},{v:3,l:'3 <200 c/ resp.'},{v:4,l:'4 <100 c/ resp.'}]],
+            ['coag','Coagulação (Plaquetas x10³)',[{v:0,l:'0 ≥150'},{v:1,l:'1 <150'},{v:2,l:'2 <100'},{v:3,l:'3 <50'},{v:4,l:'4 <20'}]],
+            ['fig','Fígado (Bilirrubina)',[{v:0,l:'0 <1,2'},{v:1,l:'1 1,2–1,9'},{v:2,l:'2 2,0–5,9'},{v:3,l:'3 6,0–11,9'},{v:4,l:'4 ≥12'}]],
+            ['cardio','Cardiovascular (PAM/DVA)',[{v:0,l:'0 PAM≥70'},{v:1,l:'1 PAM<70'},{v:2,l:'2 Dopa≤5'},{v:3,l:'3 Nora≤0,1'},{v:4,l:'4 Nora>0,1'}]],
+            ['snc','SNC (Glasgow)',[{v:0,l:'0 15'},{v:1,l:'1 13–14'},{v:2,l:'2 10–12'},{v:3,l:'3 6–9'},{v:4,l:'4 <6'}]],
+            ['renal','Renal (Creatinina/Diurese)',[{v:0,l:'0 <1,2'},{v:1,l:'1 1,2–1,9'},{v:2,l:'2 2,0–3,4'},{v:3,l:'3 3,5–4,9'},{v:4,l:'4 ≥5,0'}]]
+          ].forEach(x => body.appendChild(buildBtnGroup(x[1], x[2], s.sofa[x[0]], v => s.sofa[x[0]] = v)));
+        } else if (id === 'fugulin') {
+          [
+            ['mental','Estado Mental',[{v:1,l:'1 Orientado'},{v:2,l:'2 Desorientado'},{v:3,l:'3 Períodos incons.'},{v:4,l:'4 Inconsciente'}]],
+            ['oxig','Oxigenação',[{v:1,l:'1 Sem O2'},{v:2,l:'2 O2 intermit.'},{v:3,l:'3 O2 contínuo'},{v:4,l:'4 VMI'}]],
+            ['ssvv','Sinais Vitais',[{v:1,l:'1 6/6h'},{v:2,l:'2 4/4h'},{v:3,l:'3 2/2h'},{v:4,l:'4 <2h'}]],
+            ['motil','Motilidade',[{v:1,l:'1 Mov. todos'},{v:2,l:'2 Lim. parcial'},{v:3,l:'3 Auxílio'},{v:4,l:'4 Incapaz'}]],
+            ['deamb','Deambulação',[{v:1,l:'1 Deambula'},{v:2,l:'2 Auxílio'},{v:3,l:'3 Cadeira'},{v:4,l:'4 Acamado'}]],
+            ['alim','Alimentação',[{v:1,l:'1 Autosuficiente'},{v:2,l:'2 Auxílio VO'},{v:3,l:'3 Sonda'},{v:4,l:'4 Parenteral/Zero'}]],
+            ['corp','Cuidado Corporal',[{v:1,l:'1 Autosuficiente'},{v:2,l:'2 Auxílio'},{v:3,l:'3 Banho leito'},{v:4,l:'4 Total'}]],
+            ['elim','Eliminação',[{v:1,l:'1 Autosuficiente'},{v:2,l:'2 Fralda'},{v:3,l:'3 SVD'},{v:4,l:'4 Sonda+Incont.'}]],
+            ['terap','Terapêutica',[{v:1,l:'1 VO/IM'},{v:2,l:'2 EV intermit.'},{v:3,l:'3 EV contínua'},{v:4,l:'4 DVA/BIC'}]]
+          ].forEach(x => body.appendChild(buildBtnGroup(x[1], x[2], s.fugulin[x[0]], v => s.fugulin[x[0]] = v)));
+        } else if (id === 'eva') {
+          body.appendChild(buildBtnGroup('Escala Visual Analógica (0 a 10)', Array.from({length: 11}, (_, i) => ({v: i, l: String(i)})), s.eva, v => s.eva = v));
+        } else if (id === 'bps') {
+          body.appendChild(buildBtnGroup('Expressão Facial', [{v:1,l:'1 Relaxada'},{v:2,l:'2 Parc. tensa'},{v:3,l:'3 Total. tensa'},{v:4,l:'4 Careta'}], s.bps.face, v => s.bps.face = v));
+          body.appendChild(buildBtnGroup('Membros Superiores', [{v:1,l:'1 Sem mov.'},{v:2,l:'2 Parc. fletidos'},{v:3,l:'3 Fletidos'},{v:4,l:'4 Retraídos'}], s.bps.upper, v => s.bps.upper = v));
+          body.appendChild(buildBtnGroup('Ventilação Mecânica', [{v:1,l:'1 Tolerando'},{v:2,l:'2 Tosse eventual'},{v:3,l:'3 Brigando'},{v:4,l:'4 Incapaz'}], s.bps.vent, v => s.bps.vent = v));
+        } else if (id === 'adiva') {
+          [
+            ['hist','1. História prévia de acesso venoso difícil?',[{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}]],
+            ['expect','2. Profissional prevê dificuldade na punção?',[{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}]],
+            ['palp','3. Veia não palpável?',[{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}]],
+            ['vis','4. Veia não visível?',[{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}]],
+            ['diam','5. Diâmetro < 3 mm?',[{v:0,l:'Não (0)'},{v:1,l:'Sim (+1)'}]]
+          ].forEach(x => body.appendChild(buildBtnGroup(x[1], x[2], s.adiva[x[0]], v => s.adiva[x[0]] = v)));
+        }
+
+        card.appendChild(body);
+      }
+
+      // ---------- 7 CALCULATORS ----------
+      function renderCalculators() {
+        const container = document.getElementById('panel-calcs');
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5"><h3 class="text-sm font-bold navy-text">1. Relação PaO2 / FiO2</h3><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-slate-500">PaO2 (mmHg)</label><input id="c-pao2" type="number" placeholder="90" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">FiO2 (%)</label><input id="c-fio2" type="number" placeholder="40" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-pf" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl">Informe PaO2 e FiO2 (%)</div></div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5"><h3 class="text-sm font-bold navy-text">2. Gotejamento de Soro</h3><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-slate-500">Volume (mL)</label><input id="c-got-vol" type="number" placeholder="500" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Tempo (horas)</label><input id="c-got-hr" type="number" step="0.5" placeholder="6" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-got" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl">Informe volume e tempo</div></div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5"><h3 class="text-sm font-bold navy-text">3. Vazão de Drogas Vasoativas (mL/h)</h3><div class="grid grid-cols-3 gap-2"><div><label class="text-[11px] text-slate-500">Peso (kg)</label><input id="c-dva-peso" type="number" placeholder="70" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Dose (mcg/kg/min)</label><input id="c-dva-dose" type="number" step="0.01" placeholder="0.1" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Conc. (mcg/mL)</label><input id="c-dva-conc" type="number" placeholder="64" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-dva" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl">Informe peso, dose e concentração</div></div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5"><h3 class="text-sm font-bold navy-text">4. Regra de Três / Diluição</h3><div class="grid grid-cols-3 gap-2"><div><label class="text-[11px] text-slate-500">Prescrito (mg)</label><input id="c-r3-presc" type="number" placeholder="250" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Disponível (mg)</label><input id="c-r3-disp" type="number" placeholder="500" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Diluente (mL)</label><input id="c-r3-vol" type="number" placeholder="10" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-r3" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl">Informe prescrição, apresentação e volume</div></div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5"><h3 class="text-sm font-bold navy-text">5. Pressão Arterial Média (PAM)</h3><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-slate-500">PAS (mmHg)</label><input id="c-pam-pas" type="number" placeholder="120" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">PAD (mmHg)</label><input id="c-pam-pad" type="number" placeholder="80" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-pam" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl">Informe PAS e PAD</div></div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5"><h3 class="text-sm font-bold navy-text">6. Balanço Hídrico</h3><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-slate-500">Ganhos totais (mL)</label><input id="c-bh-in" type="number" placeholder="1800" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Perdas totais (mL)</label><input id="c-bh-out" type="number" placeholder="1450" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-bh" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl">Informe ganhos e perdas</div></div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-2.5 md:col-span-2"><h3 class="text-sm font-bold navy-text">7. Índice de Massa Corporal (IMC)</h3><div class="grid grid-cols-2 gap-2 max-w-md"><div><label class="text-[11px] text-slate-500">Peso (kg)</label><input id="c-imc-peso" type="number" step="0.1" placeholder="72" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div><div><label class="text-[11px] text-slate-500">Altura (m)</label><input id="c-imc-alt" type="number" step="0.01" placeholder="1.72" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300" /></div></div><div id="r-imc" class="text-xs font-bold text-slate-700 bg-slate-100 p-2.5 rounded-xl max-w-md">Informe peso e altura</div></div>
+        `;
+        const bindCalc = (ids, fn) => ids.forEach(id => document.getElementById(id).addEventListener('input', fn));
+        bindCalc(['c-pao2','c-fio2'], () => {
+          const pa = Number(document.getElementById('c-pao2').value), fi = Number(document.getElementById('c-fio2').value);
+          if (pa > 0 && fi > 0) {
+            const r = pa / (fi / 100);
+            document.getElementById('r-pf').textContent = `PaO2/FiO2 = ${r.toFixed(0)} mmHg (${r > 400 ? 'Normal' : r > 300 ? 'Hipoxemia leve' : r > 200 ? 'SDRA Leve' : r > 100 ? 'SDRA Moderada' : 'SDRA Grave'})`;
+          }
+        });
+        bindCalc(['c-got-vol','c-got-hr'], () => {
+          const v = Number(document.getElementById('c-got-vol').value), h = Number(document.getElementById('c-got-hr').value);
+          if (v > 0 && h > 0) document.getElementById('r-got').textContent = `${(v / (h * 3)).toFixed(1)} gotas/min | ${(v / h).toFixed(1)} microgotas/min (mL/h)`;
+        });
+        bindCalc(['c-dva-peso','c-dva-dose','c-dva-conc'], () => {
+          const p = Number(document.getElementById('c-dva-peso').value), d = Number(document.getElementById('c-dva-dose').value), c = Number(document.getElementById('c-dva-conc').value);
+          if (p > 0 && d > 0 && c > 0) document.getElementById('r-dva').textContent = `Vazão em BIC: ${((d * p * 60) / c).toFixed(2)} mL/h`;
+        });
+        bindCalc(['c-r3-presc','c-r3-disp','c-r3-vol'], () => {
+          const pr = Number(document.getElementById('c-r3-presc').value), di = Number(document.getElementById('c-r3-disp').value), vo = Number(document.getElementById('c-r3-vol').value);
+          if (pr > 0 && di > 0 && vo > 0) document.getElementById('r-r3').textContent = `Aspirar: ${((pr * vo) / di).toFixed(2)} mL`;
+        });
+        bindCalc(['c-pam-pas','c-pam-pad'], () => {
+          const s = Number(document.getElementById('c-pam-pas').value), d = Number(document.getElementById('c-pam-pad').value);
+          if (s > 0 && d > 0) {
+            const pam = (s + 2 * d) / 3;
+            document.getElementById('r-pam').textContent = `PAM = ${pam.toFixed(1)} mmHg ${pam < 65 ? '(PAM < 65)' : '(Adequada)'}`;
+          }
+        });
+        bindCalc(['c-bh-in','c-bh-out'], () => {
+          const i = Number(document.getElementById('c-bh-in').value || 0), o = Number(document.getElementById('c-bh-out').value || 0);
+          document.getElementById('r-bh').textContent = `Saldo: ${i - o >= 0 ? '+' : ''}${i - o} mL`;
+        });
+        bindCalc(['c-imc-peso','c-imc-alt'], () => {
+          const w = Number(document.getElementById('c-imc-peso').value), h = Number(document.getElementById('c-imc-alt').value);
+          if (w > 0 && h > 0) {
+            const imc = w / (h * h);
+            document.getElementById('r-imc').textContent = `IMC = ${imc.toFixed(1)} kg/m² (${imc < 18.5 ? 'Baixo peso' : imc < 25 ? 'Eutrófico' : imc < 30 ? 'Sobrepeso' : 'Obesidade'})`;
+          }
+        });
+      }
+
+      // ---------- PRONTUÁRIO ----------
+      function renderProntuario() {
+        const p = getP();
+        const v = p.vitals;
+        const age = calcAgeText(p.dob);
+        const measured = SCALE_LIST.filter(sc => p.measuredScales.includes(sc.id));
+        document.getElementById('prontuario-preview').innerHTML = `
+          <div class="border-b border-slate-200 pb-4 flex flex-wrap justify-between gap-2">
+            <div>
+              <h2 class="text-lg font-extrabold navy-text">Plantão Pro — Registro SAE (COFEN nº 736/2024)</h2>
+              <p class="text-xs text-slate-500">Paciente: <strong>${esc(p.nome || '--')}</strong> | Leito: <strong>${esc(p.leito || '--')}</strong> | Idade: ${esc(age || '--')} | Hipótese: ${esc(p.hipotese || '--')}</p>
+            </div>
+            <div class="text-xs text-slate-500">${new Date().toLocaleString('pt-BR')}</div>
+          </div>
+          <div class="text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <strong>Sinais Vitais:</strong> PA ${v.pas || '--'}x${v.pad || '--'} mmHg | FC ${v.fc || '--'} bpm | FR ${v.fr || '--'} irpm | Tax ${v.tax || '--'} °C | SpO2 ${v.spo2 || '--'}% | Dor ${v.eva || '--'}/10 | Dextro ${v.dextro || '--'} mg/dL
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            ${measured.length === 0 ? '<div class="col-span-full text-slate-400">Nenhuma escala selecionada.</div>' : measured.map(sc => `<div class="p-2.5 rounded-xl border border-slate-200"><strong>${sc.name}:</strong> ${getScaleSummary(sc.id, p)}</div>`).join('')}
+          </div>
+          <div><h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Diagnósticos de Enfermagem</h3><pre class="whitespace-pre-wrap font-sans text-xs sm:text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">${esc(p.txtDiagnosticos || 'Não gerado.')}</pre></div>
+          <div><h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Prescrição de Enfermagem</h3><pre class="whitespace-pre-wrap font-sans text-xs sm:text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">${esc(p.txtPrescricao || 'Não gerado.')}</pre></div>
+          <div><h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Resultados Esperados</h3><pre class="whitespace-pre-wrap font-sans text-xs sm:text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">${esc(p.txtResultados || 'Não gerado.')}</pre></div>
+          <div><h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Evolução de Enfermagem</h3><div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs sm:text-sm">${buildEvolutionHtml(p.txtEvolucao)}</div></div>
+        `;
+      }
+
+      // ---------- NAVIGATION & INIT ----------
+      function switchTab(tab) {
+        state.activeTab = tab;
+        document.querySelectorAll('.tab-panel').forEach(el => el.classList.toggle('hidden', el.id !== `tab-${tab}`));
+        document.querySelectorAll('.nav-pill').forEach(btn => {
+          const act = btn.dataset.tab === tab;
+          btn.classList.toggle('nav-pill-active', act);
+          if (!act) btn.classList.add('bg-white', 'text-slate-700');
+          else btn.classList.remove('bg-white', 'text-slate-700');
+        });
+        document.querySelectorAll('.mob-nav').forEach(btn => btn.classList.toggle('mobile-nav-active', btn.dataset.tab === tab));
+        if (tab === 'escalas') renderScalesPanel();
+        if (tab === 'diagnosticos' || tab === 'resultados' || tab === 'prescricao' || tab === 'evolucao') renderSteps345();
+        if (tab === 'prontuario') renderProntuario();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function renderSelector() {
+        const sel = document.getElementById('patient-selector');
+        sel.innerHTML = '';
+        state.patients.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.leito || 'Leito'} — ${p.nome || 'Sem nome'}`;
+          if (p.id === state.activeId) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+
+
+
+      function refreshAll() {
+        const p = getP();
+        document.getElementById('inp-nurse-name').value = state.nurseName || '';
+        document.getElementById('inp-nurse-coren').value = state.nurseCoren || '';
+        renderSelector();
+        document.getElementById('inp-nome').value = p.nome || '';
+        document.getElementById('inp-leito').value = p.leito || '';
+        document.getElementById('inp-dob').value = p.dob || '';
+        updateAgeBadge();
+        document.getElementById('inp-hipotese').value = p.hipotese || '';
+        ['pas','pad','fc','fr','tax','spo2','eva','dextro'].forEach(k => { document.getElementById(`vit-${k}`).value = p.vitals[k] || ''; });
+        renderABCDE();
+        renderScalesPanel();
+        renderSteps345();
+        if (state.activeTab === 'prontuario') renderProntuario();
+      }
+
+      function loadDemo() {
+        const p = newPatient('UTI Box 02');
+        p.nome = 'M.A.S.';
+        p.dob = '1957-05-14';
+        p.hipotese = 'Choque séptico pulmonar';
+        p.vitals = { pas: '88', pad: '54', fc: '118', fr: '18', tax: '38.4', spo2: '94', eva: '0', dextro: '158' };
+        p.estadoGeral = 'Mau Estado Geral (MEG)';
+        p.respModo = VMI_LABEL;
+        p.hemoPerfil = 'Instável / Em uso de DVA';
+        p.measuredScales = ['glasgow', 'rass', 'braden', 'morse', 'news2', 'sofa'];
+        p.scales.glasgow = { ocular: 1, verbal: 1, motora: 1, pupilar: 0 };
+        p.scales.rass = -3;
+        p.scales.braden = { sensorial: 1, umidade: 2, atividade: 1, mobilidade: 1, nutricao: 2, friccao: 1 };
+        p.scales.morse = { hist: 0, diag: 15, aux: 0, iv: 20, marcha: 0, mental: 15 };
+        p.scales.news2 = { spo2Scale: 1, o2: 2, cons: 3 };
+        p.abcdeSelected = {
+          A: [SEDADO_LABEL, 'Pupilas isocóricas e fotorreagentes', 'Febril / Hipotérmico'],
+          B: [VMI_LABEL, 'Sincrônico ao ventilador mecânico', 'Estertores / Crepitações'],
+          C: ['Pele hipocorada / fria / sudoreica', 'Perfusão periférica lentificada (> 3s)', 'Hipotenso', 'Pulso fino / filiforme / taquicárdico', 'Em uso de droga vasoativa (DVA)'],
+          D: ['Dieta enteral (SNE/GTT) em infusão', 'Sem dor no momento', 'Acesso venoso central (AVC) / PICC pérvio sem sinais de infecção', 'Sonda vesical de demora (SVD) pérvia', 'Abdome flácido, indolor, RHA presentes e timpânico à percussão'],
+          E: ['Pele íntegra e hidratada', 'Oligúria / Anúria', 'Exames laboratoriais avaliados', 'Grades elevadas e pulseira de identificação conferida']
+        };
+        p.vmi = { params: 'PCV, FiO2 45%, PEEP 8, Pinsp 14, FR 18', cuff: '26 cmH2O', posTot: '22 cm na rima', numTot: '8.0' };
+        p.abcdeExtra = {
+          A: 'em infusão contínua de fentanil e midazolam',
+          B: 'aspiração traqueal com secreção mucopurulenta em média quantidade',
+          C: 'noradrenalina em BIC a 14 mL/h',
+          D: 'dieta enteral a 45 mL/h bem tolerada',
+          E: 'lactato arterial 2,9 mmol/L e leucócitos 18.400/mm³'
+        };
+        state.patients.unshift(p);
+        state.activeId = p.id;
+        state.activeAbcde = 'A';
+        autoSuggestIdsFromABCDE();
+        generateDxText();
+        generateResText();
+        generatePrescText();
+        generateEvolutionProse();
+        refreshAll();
+        toast('Caso exemplo completo carregado!');
+      }
+
+      function bindAll() {
+        document.getElementById('inp-nurse-name').addEventListener('input', e => { state.nurseName = e.target.value; saveProfile(); });
+        document.getElementById('inp-nurse-coren').addEventListener('input', e => { state.nurseCoren = e.target.value; saveProfile(); });
+        document.getElementById('btn-save-nurse').addEventListener('click', () => {
+          state.nurseName = document.getElementById('inp-nurse-name').value;
+          state.nurseCoren = document.getElementById('inp-nurse-coren').value;
+          saveProfile();
+          document.getElementById('lbl-save-nurse').textContent = 'Salvo ✓';
+          setTimeout(() => { document.getElementById('lbl-save-nurse').textContent = 'Salvar'; }, 2000);
+          toast('Nome e COREN salvos no aparelho!');
+        });
+
+        const authImg = document.getElementById('author-fixed-img');
+        if (authImg) {
+          authImg.addEventListener('error', () => { authImg.src = 'icon-192.png'; authImg.className = 'w-28 h-28 mx-auto my-4 rounded-2xl object-cover'; });
+        }
+
+        const bindInp = (id, fn) => document.getElementById(id).addEventListener('input', e => { fn(getP(), e.target.value); saveState(); });
+        bindInp('inp-nome', (p, v) => { p.nome = v; renderSelector(); });
+        bindInp('inp-leito', (p, v) => { p.leito = v; renderSelector(); });
+        bindInp('inp-dob', (p, v) => { p.dob = v; updateAgeBadge(); });
+        bindInp('inp-hipotese', (p, v) => p.hipotese = v);
+        ['pas','pad','fc','fr','tax','spo2','eva','dextro'].forEach(k => bindInp(`vit-${k}`, (p, v) => p.vitals[k] = v));
+        bindInp('txt-diagnosticos', (p, v) => p.txtDiagnosticos = v);
+        bindInp('txt-resultados', (p, v) => p.txtResultados = v);
+        bindInp('txt-prescricao', (p, v) => p.txtPrescricao = v);
+        bindInp('txt-evolucao', (p, v) => { p.txtEvolucao = v; renderEvoFormattedPreview(); });
+
+        document.getElementById('patient-selector').addEventListener('change', e => { state.activeId = e.target.value; saveState(); refreshAll(); });
+        document.getElementById('btn-new-patient').addEventListener('click', () => {
+          const p = newPatient(`Leito ${String(state.patients.length + 1).padStart(2, '0')}`);
+          state.patients.unshift(p); state.activeId = p.id; state.activeAbcde = 'A'; saveState(); refreshAll(); switchTab('avaliacao'); toast('Novo leito criado!');
+        });
+        document.getElementById('btn-reset-patient').addEventListener('click', () => {
+          confirmModal('Limpar dados', 'Deseja limpar os dados do paciente atual (seu Nome e COREN continuarão salvos)?', () => {
+            if (state.patients.length > 1) { state.patients = state.patients.filter(x => x.id !== state.activeId); state.activeId = state.patients[0].id; }
+            else { const f = newPatient('Box 01'); state.patients = [f]; state.activeId = f.id; }
+            state.activeAbcde = 'A'; saveState(); refreshAll(); toast('Dados do paciente limpos.');
+          });
+        });
+        document.getElementById('btn-demo-case').addEventListener('click', loadDemo);
+
+        document.querySelectorAll('.nav-pill, .mob-nav').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+        document.querySelectorAll('.jump-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.jump)));
+
+        document.getElementById('sub-btn-escalas').addEventListener('click', () => {
+          document.getElementById('panel-escalas').classList.remove('hidden');
+          document.getElementById('panel-calcs').classList.add('hidden');
+          document.getElementById('sub-btn-escalas').className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold navy-bg text-white';
+          document.getElementById('sub-btn-calcs').className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white';
+        });
+        document.getElementById('sub-btn-calcs').addEventListener('click', () => {
+          document.getElementById('panel-escalas').classList.add('hidden');
+          document.getElementById('panel-calcs').classList.remove('hidden');
+          document.getElementById('sub-btn-calcs').className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold navy-bg text-white';
+          document.getElementById('sub-btn-escalas').className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white';
+        });
+        document.getElementById('btn-suggest-dx').addEventListener('click', () => { autoSuggestIdsFromABCDE(); renderSteps345(); toast('Sugestões aplicadas.'); });
+        document.getElementById('btn-gen-dx').addEventListener('click', generateDxText);
+        document.getElementById('btn-go-resultados').addEventListener('click', () => switchTab('prescricao'));
+        document.getElementById('btn-gen-resultados').addEventListener('click', generateResText);
+        document.getElementById('btn-go-prescricao').addEventListener('click', () => switchTab('evolucao'));
+        document.getElementById('btn-gen-prescricao').addEventListener('click', generatePrescText);
+        document.getElementById('btn-go-evolucao').addEventListener('click', () => switchTab('resultados'));
+        document.getElementById('btn-gen-evolucao').addEventListener('click', generateEvolutionProse);
+        document.getElementById('btn-copy-evolucao').addEventListener('click', () => copyText(document.getElementById('txt-evolucao').value, 'Evolução copiada!'));
+
+        function printSheet(mode) {
+          const p = getP();
+          const sheet = document.getElementById('print-sheet');
+          const age = calcAgeText(p.dob);
+          if (mode === 'evolucao') {
+            const txt = document.getElementById('txt-evolucao').value || p.txtEvolucao || '';
+            if (!txt.trim()) { toast('Gere a evolução antes de imprimir.', true); return; }
+            sheet.innerHTML = `
+              <div style="border-bottom:1px solid #cbd5e1;padding-bottom:10px;margin-bottom:14px;">
+                <h2 style="font-size:16px;font-weight:800;margin:0;color:#0B192C;">Evolução de Enfermagem — Plantão Pro</h2>
+                <p style="font-size:11px;color:#475569;margin:4px 0 0;">Paciente: <strong>${esc(p.nome || '--')}</strong> | Leito: <strong>${esc(p.leito || '--')}</strong> | Idade: ${esc(age || '--')} | Hipótese: ${esc(p.hipotese || '--')}</p>
+              </div>
+              <div style="font-size:12px;">${buildEvolutionHtml(txt)}</div>
+            `;
+          } else {
+            renderProntuario();
+            sheet.innerHTML = document.getElementById('prontuario-preview').innerHTML;
+          }
+          try { window.print(); } catch (err) { toast('Use Imprimir / Salvar PDF no menu do navegador.', true); }
+        }
+        document.getElementById('btn-print-evolucao').addEventListener('click', () => printSheet('evolucao'));
+        document.getElementById('btn-print-all').addEventListener('click', () => printSheet('prontuario'));
+
+        document.getElementById('btn-copy-all').addEventListener('click', () => {
+          const p = getP();
+          const age = calcAgeText(p.dob);
+          const txt = [
+            `=== PLANTÃO PRO — SAE (COFEN 736/2024) ===`,
+            `Paciente: ${p.nome || '--'} | Leito: ${p.leito || '--'} | Idade: ${age || '--'} | Hipótese: ${p.hipotese || '--'}`,
+            `\n--- DIAGNÓSTICOS ---\n${p.txtDiagnosticos || '--'}`,
+            `\n--- RESULTADOS ESPERADOS ---\n${p.txtResultados || '--'}`,
+            `\n--- PRESCRIÇÃO DE ENFERMAGEM ---\n${p.txtPrescricao || '--'}`,
+            `\n--- EVOLUÇÃO DE ENFERMAGEM ---\n${p.txtEvolucao || '--'}`
+          ].join('\n');
+          copyText(txt, 'Prontuário SAE completo copiado!');
+        });
+      }
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+      }
+
+      loadState();
+      renderCalculators();
+      bindAll();
+      refreshAll();
+    })();
+  </script>
+</body>
+</html>
