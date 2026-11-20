@@ -264,7 +264,7 @@
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Diagnósticos Gerados (Editável)</h3>
           <button id="btn-go-resultados" type="button" class="inline-flex items-center gap-1 text-xs font-bold text-sky-800 hover:underline">
-            <span>TEMP_PRESC</span>
+            <span>Avançar para Prescrição</span>
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
@@ -565,7 +565,7 @@
           selectedDxIds: [], selectedResIds: [], selectedPrescIds: [],
           txtDiagnosticos: '', txtResultados: '', txtPrescricao: '', txtEvolucao: '',
           scales: {
-            glasgow: { ocular: 4, verbal: 5, motora: 6, pupilar: 0 },
+            glasgow: { na: false, ocular: 4, verbal: 5, motora: 6, pupilar: 0 },
             rass: 0,
             cincinnati: { face: 0, arm: 0, speech: 0 },
             nihss: Array(11).fill(0),
@@ -699,7 +699,12 @@
       // ---------- SCALE CALCULATIONS ----------
       function getScaleNumeric(id, p) {
         const s = p.scales;
-        if (id === 'glasgow') return Math.max(1, Number(s.glasgow.ocular) + Number(s.glasgow.verbal) + Number(s.glasgow.motora) - Number(s.glasgow.pupilar));
+        if (id === 'glasgow') {
+          const g = s.glasgow;
+          if (g.na) return null;
+          if (g.ocular === 'NT' || g.verbal === 'NT' || g.motora === 'NT') return null;
+          return Math.max(1, Number(g.ocular) + Number(g.verbal) + Number(g.motora) - Number(g.pupilar));
+        }
         if (id === 'rass') return Number(s.rass);
         if (id === 'cincinnati') return s.cincinnati.face + s.cincinnati.arm + s.cincinnati.speech;
         if (id === 'nihss') return s.nihss.reduce((a, b) => a + Number(b), 0);
@@ -730,7 +735,19 @@
 
       function getScaleSummary(id, p) {
         const val = getScaleNumeric(id, p);
-        if (id === 'glasgow') return `${val}/15 (${val <= 8 ? 'Grave' : val <= 12 ? 'Moderado' : 'Leve'})`;
+        if (id === 'glasgow') {
+          const g = p.scales.glasgow;
+          if (g.na) return 'Não se aplica';
+          const nts = [];
+          if (g.ocular === 'NT') nts.push('AO: NT');
+          if (g.verbal === 'NT') nts.push('RV: NT');
+          if (g.motora === 'NT') nts.push('RM: NT');
+          if (nts.length > 0) {
+            const sum = (g.ocular === 'NT' ? 0 : Number(g.ocular)) + (g.verbal === 'NT' ? 0 : Number(g.verbal)) + (g.motora === 'NT' ? 0 : Number(g.motora));
+            return `${sum} pts (${nts.join(', ')})`;
+          }
+          return `${val}/15 (${val <= 8 ? 'Grave' : val <= 12 ? 'Moderado' : 'Leve'})`;
+        }
         if (id === 'rass') return `RASS ${val > 0 ? '+' + val : val}`;
         if (id === 'cincinnati') return `${val}/3 (${val > 0 ? 'Suspeita AVC' : 'Normal'})`;
         if (id === 'nihss') return `${val}/42 pts`;
@@ -764,26 +781,46 @@
         const g = p.scales.glasgow;
         const wrap = document.createElement('div');
         wrap.className = 'rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2.5';
-        wrap.innerHTML = `<div class="flex items-center justify-between gap-2"><span class="text-xs font-bold navy-text">Escala de Coma de Glasgow + Pupilas (ECG-P)</span><span class="px-2.5 py-0.5 rounded-lg navy-bg text-white text-xs font-bold">${getScaleSummary('glasgow', p)}</span></div>`;
-        const mkRow = (label, opts, val, setter) => {
-          const r = document.createElement('div');
-          r.innerHTML = `<div class="text-[11px] font-semibold text-slate-600 mb-1">${label}</div>`;
-          const gRow = document.createElement('div');
-          gRow.className = 'flex flex-wrap gap-1';
-          opts.forEach(o => {
-            const b = document.createElement('button');
-            b.type = 'button'; b.textContent = o.l;
-            b.className = `px-2 py-1 rounded-lg text-[11px] border transition ${String(val) === String(o.v) ? 'chip-active' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}`;
-            b.addEventListener('click', () => { setter(o.v); markScaleMeasured(p, 'glasgow'); saveState(); renderABCDE(); });
-            gRow.appendChild(b);
-          });
-          r.appendChild(gRow);
-          return r;
-        };
-        wrap.appendChild(mkRow('Abertura Ocular', [{v:4,l:'4 Espontânea'},{v:3,l:'3 Verbal'},{v:2,l:'2 Dor'},{v:1,l:'1 Nenhuma'}], g.ocular, v => g.ocular = v));
-        wrap.appendChild(mkRow('Resposta Verbal', [{v:5,l:'5 Orientada'},{v:4,l:'4 Confusa'},{v:3,l:'3 Inapropriada'},{v:2,l:'2 Incompreensível'},{v:1,l:'1 Nenhuma'}], g.verbal, v => g.verbal = v));
-        wrap.appendChild(mkRow('Resposta Motora', [{v:6,l:'6 Obedece'},{v:5,l:'5 Localiza'},{v:4,l:'4 Retirada'},{v:3,l:'3 Flexão'},{v:2,l:'2 Extensão'},{v:1,l:'1 Nenhuma'}], g.motora, v => g.motora = v));
-        wrap.appendChild(mkRow('Reatividade Pupilar', [{v:0,l:'0 Ambas reativas'},{v:1,l:'-1 Uma reativa'},{v:2,l:'-2 Nenhuma reativa'}], g.pupilar, v => g.pupilar = v));
+        wrap.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-bold navy-text">Escala de Coma de Glasgow + Pupilas (ECG-P)</span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="btn-inline-glasgow-na" class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold border transition ${g.na ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'}">${g.na ? '✓ Não se aplica' : 'Não se aplica'}</button>
+              <span class="px-2.5 py-0.5 rounded-lg navy-bg text-white text-xs font-bold">${getScaleSummary('glasgow', p)}</span>
+            </div>
+          </div>`;
+        wrap.querySelector('#btn-inline-glasgow-na').addEventListener('click', () => {
+          g.na = !g.na;
+          if (g.na) p.measuredScales = p.measuredScales.filter(x => x !== 'glasgow');
+          else markScaleMeasured(p, 'glasgow');
+          saveState(); renderABCDE();
+        });
+        if (!g.na) {
+          const mkRow = (label, opts, val, setter) => {
+            const r = document.createElement('div');
+            r.innerHTML = `<div class="text-[11px] font-semibold text-slate-600 mb-1">${label}</div>`;
+            const gRow = document.createElement('div');
+            gRow.className = 'flex flex-wrap gap-1';
+            opts.forEach(o => {
+              const b = document.createElement('button');
+              b.type = 'button'; b.textContent = o.l;
+              b.className = `px-2 py-1 rounded-lg text-[11px] border transition ${String(val) === String(o.v) ? 'chip-active' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+              b.addEventListener('click', () => { setter(o.v); markScaleMeasured(p, 'glasgow'); saveState(); renderABCDE(); });
+              gRow.appendChild(b);
+            });
+            r.appendChild(gRow);
+            return r;
+          };
+          wrap.appendChild(mkRow('Abertura Ocular', [{v:4,l:'4 Espontânea'},{v:3,l:'3 Verbal'},{v:2,l:'2 Dor'},{v:1,l:'1 Nenhuma'},{v:'NT',l:'NT Não testável'}], g.ocular, v => g.ocular = v));
+          wrap.appendChild(mkRow('Resposta Verbal', [{v:5,l:'5 Orientada'},{v:4,l:'4 Confusa'},{v:3,l:'3 Inapropriada'},{v:2,l:'2 Incompreensível'},{v:1,l:'1 Nenhuma'},{v:'NT',l:'NT Não testável'}], g.verbal, v => g.verbal = v));
+          wrap.appendChild(mkRow('Resposta Motora', [{v:6,l:'6 Obedece'},{v:5,l:'5 Localiza'},{v:4,l:'4 Retirada'},{v:3,l:'3 Flexão'},{v:2,l:'2 Extensão'},{v:1,l:'1 Nenhuma'},{v:'NT',l:'NT Não testável'}], g.motora, v => g.motora = v));
+          wrap.appendChild(mkRow('Reatividade Pupilar', [{v:0,l:'0 Ambas reativas'},{v:1,l:'-1 Uma reativa'},{v:2,l:'-2 Nenhuma reativa'}], g.pupilar, v => g.pupilar = v));
+        } else {
+          const note = document.createElement('p');
+          note.className = 'text-[11px] text-amber-800 font-medium';
+          note.textContent = 'Escala marcada como "Não se aplica" — não será incluída na evolução de enfermagem.';
+          wrap.appendChild(note);
+        }
         return wrap;
       }
 
@@ -1039,7 +1076,6 @@
         const dxIds = [];
         DX_CATALOG.forEach(dx => { if (dx.tags.some(t => allTags.includes(t))) dxIds.push(dx.id); });
 
-        // Also integrate measured scales into Diagnostic suggestions!
         if (p.measuredScales.includes('braden') && getScaleNumeric('braden', p) <= 18 && !dxIds.includes('dx_lp')) dxIds.push('dx_lp');
         if (p.measuredScales.includes('morse') && getScaleNumeric('morse', p) >= 25 && !dxIds.includes('dx_queda')) dxIds.push('dx_queda');
         if (p.measuredScales.includes('news2') && getScaleNumeric('news2', p) >= 5 && !dxIds.includes('dx_choque')) dxIds.push('dx_choque');
@@ -1047,20 +1083,25 @@
         if (p.measuredScales.includes('eva') && getScaleNumeric('eva', p) >= 4 && !dxIds.includes('dx_dor')) dxIds.push('dx_dor');
         if (p.measuredScales.includes('bps') && getScaleNumeric('bps', p) >= 6 && !dxIds.includes('dx_dor')) dxIds.push('dx_dor');
 
-        if (dxIds.length === 0) dxIds.push('dx_infeccao');
         p.selectedDxIds = dxIds;
 
-        p.selectedResIds = ['res_hemo', 'res_resp', 'res_inf', 'res_queda'];
-        p.selectedPrescIds = ['pr_ssvv', 'pr_disp', 'pr_queda'];
-        if (dxIds.includes('dx_choque')) p.selectedPrescIds.push('pr_dva', 'pr_bh');
-        if (dxIds.includes('dx_troca')) p.selectedPrescIds.push('pr_o2');
-        if (dxIds.includes('dx_neuro')) { p.selectedResIds.push('res_neuro'); p.selectedPrescIds.push('pr_neuro'); }
-        if (dxIds.includes('dx_dor')) { p.selectedResIds.push('res_dor'); p.selectedPrescIds.push('pr_dor'); }
-        if (dxIds.includes('dx_hiper')) { p.selectedResIds.push('res_temp'); p.selectedPrescIds.push('pr_febre'); }
-        if (dxIds.includes('dx_lp')) { p.selectedResIds.push('res_pele'); p.selectedPrescIds.push('pr_lp'); }
-        if (dxIds.includes('dx_gastro')) p.selectedResIds.push('res_gastro');
-        p.selectedResIds = [...new Set(p.selectedResIds)];
-        p.selectedPrescIds = [...new Set(p.selectedPrescIds)];
+        const resIds = [];
+        const prescIds = [];
+        const hasVitals = Object.values(p.vitals).some(v => String(v || '').trim() !== '');
+        if (hasVitals) prescIds.push('pr_ssvv');
+        if (dxIds.includes('dx_choque')) { resIds.push('res_hemo'); prescIds.push('pr_dva', 'pr_bh'); }
+        if (dxIds.includes('dx_troca')) { resIds.push('res_resp'); prescIds.push('pr_o2'); }
+        if (dxIds.includes('dx_neuro')) { resIds.push('res_neuro'); prescIds.push('pr_neuro'); }
+        if (dxIds.includes('dx_dor')) { resIds.push('res_dor'); prescIds.push('pr_dor'); }
+        if (dxIds.includes('dx_hiper')) { resIds.push('res_temp'); prescIds.push('pr_febre'); }
+        if (dxIds.includes('dx_infeccao')) { resIds.push('res_inf'); prescIds.push('pr_disp'); }
+        if (dxIds.includes('dx_lp')) { resIds.push('res_pele'); prescIds.push('pr_lp'); }
+        if (dxIds.includes('dx_queda')) { resIds.push('res_queda'); prescIds.push('pr_queda'); }
+        if (dxIds.includes('dx_vol')) { resIds.push('res_hidr'); prescIds.push('pr_bh'); }
+        if (dxIds.includes('dx_gastro')) { resIds.push('res_gastro'); }
+
+        p.selectedResIds = [...new Set(resIds)];
+        p.selectedPrescIds = [...new Set(prescIds)];
         saveState();
       }
 
@@ -1155,52 +1196,97 @@
       function generateEvolutionProse() {
         const p = getP();
         const now = new Date();
-        const dt = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const dt = now.toLocaleDateString('pt-BR') + ', às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const ageTxt = calcAgeText(p.dob);
         const paras = [];
 
-        const aSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.A));
-        const aExt = (p.abcdeExtra.A || '').trim();
-        const rassPart = (p.abcdeSelected.A || []).includes(SEDADO_LABEL) ? ` e ${getScaleSummary('rass', p)}` : '';
-        const egTxt = p.estadoGeral ? preserveAcronymsLower(p.estadoGeral) : 'estado geral sob vigilância';
-        paras.push(`Em ${dt}, procedeu-se à avaliação de enfermagem do(a) paciente ${p.nome || 'sem identificação informada'}${ageTxt ? ', com ' + ageTxt : ''}, alocado(a) em ${p.leito || 'setor não especificado'}${p.hipotese ? ', com hipótese diagnóstica de ' + p.hipotese : ''}. Na avaliação inicial e neurológica, apresenta-se em ${egTxt}${aSel ? ', ' + aSel : ''}, obtendo pontuação ${getScaleSummary('glasgow', p)} na Escala de Coma de Glasgow com Pupilas (ECG-P)${rassPart}${aExt ? '; ' + aExt : ''}.`);
+        // Parágrafo 1: Identificação + A (somente dados selecionados/mensurados)
+        const identParts = [`paciente ${p.nome ? p.nome.trim() : 'não identificado(a)'}`];
+        if (ageTxt) identParts.push(`com ${ageTxt}`);
+        if (p.leito && p.leito.trim()) identParts.push(`alocado(a) em ${p.leito.trim()}`);
+        if (p.hipotese && p.hipotese.trim()) identParts.push(`com hipótese diagnóstica de ${p.hipotese.trim()}`);
 
+        let p1 = `Em ${dt}, procedeu-se à avaliação de enfermagem de ${identParts.join(', ')}.`;
+
+        const aClauses = [];
+        if (p.estadoGeral) aClauses.push(`apresenta-se em ${preserveAcronymsLower(p.estadoGeral)}`);
+        const aSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.A));
+        if (aSel) aClauses.push(aSel);
+        if (!p.scales.glasgow.na && p.measuredScales.includes('glasgow')) {
+          aClauses.push(`com pontuação ${getScaleSummary('glasgow', p)} na Escala de Coma de Glasgow com Pupilas (ECG-P)`);
+        }
+        if ((p.abcdeSelected.A || []).includes(SEDADO_LABEL) && p.measuredScales.includes('rass')) {
+          aClauses.push(`escore ${getScaleSummary('rass', p)}`);
+        }
+        const aExt = (p.abcdeExtra.A || '').trim();
+        if (aExt) aClauses.push(aExt);
+
+        if (aClauses.length > 0) {
+          p1 += ` Na avaliação inicial e neurológica, ${formatPhraseList(aClauses)}.`;
+        }
+        paras.push(p1);
+
+        // Parágrafo 2: B (somente se houver dados selecionados/mensurados em B)
+        const bClauses = [];
         const bSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.B));
-        const bExt = (p.abcdeExtra.B || '').trim();
-        const o2Txt = p.o2Fluxo ? `, com fluxo de O2 de ${p.o2Fluxo} L/min` : '';
-        let vmiTxt = '';
+        if (bSel) bClauses.push(bSel);
+        if (p.o2Fluxo) bClauses.push(`com fluxo de O2 de ${p.o2Fluxo} L/min`);
         if (p.respModo === VMI_LABEL || (p.abcdeSelected.B || []).includes(VMI_LABEL)) {
           const vp = [];
           if (p.vmi.numTot) vp.push(`TOT nº ${p.vmi.numTot}`);
           if (p.vmi.posTot) vp.push(`fixado em ${p.vmi.posTot}`);
           if (p.vmi.cuff) vp.push(`pressão de cuff de ${p.vmi.cuff}`);
           if (p.vmi.params) vp.push(`parâmetros ventilatórios de ${p.vmi.params}`);
-          if (vp.length) vmiTxt = `, mantendo ${vp.join(', ')}`;
+          if (vp.length) bClauses.push(`mantendo ${vp.join(', ')}`);
         }
-        paras.push(`No que se refere ao padrão respiratório e à ventilação, o(a) paciente encontra-se ${bSel || 'sem alterações ventilatórias agudas registradas'}${o2Txt}${vmiTxt}${p.vitals.fr ? `, com frequência respiratória de ${p.vitals.fr} irpm` : ''}${p.vitals.spo2 ? ` e saturação periférica de oxigênio (SpO2) de ${p.vitals.spo2}%` : ''}${bExt ? '; ' + bExt : ''}.`);
+        if (p.vitals.fr) bClauses.push(`frequência respiratória de ${p.vitals.fr} irpm`);
+        if (p.vitals.spo2) bClauses.push(`saturação periférica de oxigênio (SpO2) de ${p.vitals.spo2}%`);
+        const bExt = (p.abcdeExtra.B || '').trim();
+        if (bExt) bClauses.push(bExt);
+        if (bClauses.length > 0) {
+          paras.push(`No que se refere ao padrão respiratório e à ventilação, o(a) paciente encontra-se ${formatPhraseList(bClauses)}.`);
+        }
 
+        // Parágrafo 3: C (somente se houver dados selecionados/mensurados em C)
+        const cClauses = [];
         const cSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.C));
+        if (cSel) cClauses.push(cSel);
+        if (p.vitals.pas || p.vitals.pad) cClauses.push(`PA de ${p.vitals.pas || '--'}x${p.vitals.pad || '--'} mmHg`);
+        if (p.vitals.fc) cClauses.push(`FC de ${p.vitals.fc} bpm`);
+        if (p.vitals.tax) cClauses.push(`temperatura axilar de ${p.vitals.tax} °C`);
+        if (p.vitals.dextro) cClauses.push(`glicemia capilar de ${p.vitals.dextro} mg/dL`);
         const cExt = (p.abcdeExtra.C || '').trim();
-        const hemoVitals = [];
-        if (p.vitals.pas || p.vitals.pad) hemoVitals.push(`PA de ${p.vitals.pas || '--'}x${p.vitals.pad || '--'} mmHg`);
-        if (p.vitals.fc) hemoVitals.push(`FC de ${p.vitals.fc} bpm`);
-        if (p.vitals.tax) hemoVitals.push(`Tax de ${p.vitals.tax} °C`);
-        if (p.vitals.dextro) hemoVitals.push(`glicemia capilar de ${p.vitals.dextro} mg/dL`);
-        paras.push(`Quanto à avaliação circulatória e hemodinâmica, evidencia-se ${cSel || 'parâmetros circulatórios monitorizados'}${hemoVitals.length ? ', registrando-se ' + formatPhraseList(hemoVitals) : ''}${cExt ? '; ' + cExt : ''}.`);
+        if (cExt) cClauses.push(cExt);
+        if (cClauses.length > 0) {
+          paras.push(`Quanto à avaliação circulatória e hemodinâmica, observa-se ${formatPhraseList(cClauses)}.`);
+        }
 
+        // Parágrafo 4: D (somente se houver dados selecionados/informados em D)
+        const dClauses = [];
         const dSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.D));
+        if (dSel) dClauses.push(dSel);
         const dExt = (p.abcdeExtra.D || '').trim();
-        paras.push(`Em relação à dieta, à dor, aos dispositivos, à avaliação abdominal e aos drenos, verifica-se ${dSel || 'condições digestivas e dispositivos sob acompanhamento'}${dExt ? '; ' + dExt : ''}.`);
+        if (dExt) dClauses.push(dExt);
+        if (dClauses.length > 0) {
+          paras.push(`Em relação à dieta, à dor, aos dispositivos, à avaliação abdominal e aos drenos, verifica-se ${formatPhraseList(dClauses)}.`);
+        }
 
+        // Parágrafo 5: E (somente se houver dados selecionados/informados em E)
+        const eClauses = [];
         const eSel = preserveAcronymsLower(formatPhraseList(p.abcdeSelected.E));
+        if (eSel) eClauses.push(eSel);
         const eExt = (p.abcdeExtra.E || '').trim();
-        paras.push(`No tocante à exposição, à integridade cutânea, às eliminações, à segurança e aos exames, observa-se ${eSel || 'integridade cutânea, eliminações e exames sob acompanhamento'}${eExt ? '; ' + eExt : ''}.`);
+        if (eExt) eClauses.push(eExt);
+        if (eClauses.length > 0) {
+          paras.push(`No tocante à exposição, à integridade cutânea, às eliminações, à segurança e aos exames, constata-se ${formatPhraseList(eClauses)}.`);
+        }
 
+        // Parágrafo 6: Escalas complementares incluídas na SAE + Fechamento
         const extraScales = SCALE_LIST.filter(sc => sc.id !== 'glasgow' && sc.id !== 'rass' && p.measuredScales.includes(sc.id));
         const scalesSentence = extraScales.length > 0
           ? `Na estratificação complementar por escalas assistenciais, registraram-se ${formatPhraseList(extraScales.map(sc => `${sc.name}: ${getScaleSummary(sc.id, p)}`))}. `
           : '';
-        paras.push(`${scalesSentence}Foi aplicada a Sistematização da Assistência de Enfermagem (SAE) em conformidade com a Resolução COFEN nº 736/2024, com diagnósticos, resultados esperados e prescrições de enfermagem instituídos para o plantão, mantendo-se o(a) paciente sob cuidados contínuos da equipe.`);
+        paras.push(`${scalesSentence}Aplicou-se a Sistematização da Assistência de Enfermagem (SAE) em conformidade com a Resolução COFEN nº 736/2024, permanecendo o(a) paciente sob cuidados contínuos da equipe de enfermagem.`);
 
         const nName = (state.nurseName || '').trim() || 'Enfermeiro(a) Responsável';
         const nCorenNum = (state.nurseCoren || '').trim() || '000000';
@@ -1309,10 +1395,23 @@
         body.className = 'space-y-3';
 
         if (id === 'glasgow') {
-          body.appendChild(buildBtnGroup('Abertura Ocular', [{v:4,l:'4 Espontânea'},{v:3,l:'3 Verbal'},{v:2,l:'2 Dor/Pressão'},{v:1,l:'1 Nenhuma'}], s.glasgow.ocular, v => s.glasgow.ocular = v));
-          body.appendChild(buildBtnGroup('Resposta Verbal', [{v:5,l:'5 Orientada'},{v:4,l:'4 Confusa'},{v:3,l:'3 Inapropriada'},{v:2,l:'2 Incompreensível'},{v:1,l:'1 Nenhuma'}], s.glasgow.verbal, v => s.glasgow.verbal = v));
-          body.appendChild(buildBtnGroup('Resposta Motora', [{v:6,l:'6 Obedece'},{v:5,l:'5 Localiza'},{v:4,l:'4 Retirada'},{v:3,l:'3 Flexão anormal'},{v:2,l:'2 Extensão'},{v:1,l:'1 Nenhuma'}], s.glasgow.motora, v => s.glasgow.motora = v));
-          body.appendChild(buildBtnGroup('Reatividade Pupilar (subtrai)', [{v:0,l:'0 Ambas reativas'},{v:1,l:'-1 Uma reativa'},{v:2,l:'-2 Nenhuma reativa'}], s.glasgow.pupilar, v => s.glasgow.pupilar = v));
+          const naBtn = document.createElement('button');
+          naBtn.type = 'button';
+          naBtn.className = `px-3 py-1.5 rounded-xl text-xs font-bold border transition ${s.glasgow.na ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'}`;
+          naBtn.textContent = s.glasgow.na ? '✓ Não se aplica (ocultar da evolução)' : 'Marcar como: Não se aplica';
+          naBtn.addEventListener('click', () => {
+            s.glasgow.na = !s.glasgow.na;
+            if (s.glasgow.na) p.measuredScales = p.measuredScales.filter(x => x !== 'glasgow');
+            else markScaleMeasured(p, 'glasgow');
+            saveState(); renderScalesPanel(); renderScaleRefBanners();
+          });
+          body.appendChild(naBtn);
+          if (!s.glasgow.na) {
+            body.appendChild(buildBtnGroup('Abertura Ocular', [{v:4,l:'4 Espontânea'},{v:3,l:'3 Verbal'},{v:2,l:'2 Dor/Pressão'},{v:1,l:'1 Nenhuma'},{v:'NT',l:'NT Não testável'}], s.glasgow.ocular, v => s.glasgow.ocular = v));
+            body.appendChild(buildBtnGroup('Resposta Verbal', [{v:5,l:'5 Orientada'},{v:4,l:'4 Confusa'},{v:3,l:'3 Inapropriada'},{v:2,l:'2 Incompreensível'},{v:1,l:'1 Nenhuma'},{v:'NT',l:'NT Não testável'}], s.glasgow.verbal, v => s.glasgow.verbal = v));
+            body.appendChild(buildBtnGroup('Resposta Motora', [{v:6,l:'6 Obedece'},{v:5,l:'5 Localiza'},{v:4,l:'4 Retirada'},{v:3,l:'3 Flexão anormal'},{v:2,l:'2 Extensão'},{v:1,l:'1 Nenhuma'},{v:'NT',l:'NT Não testável'}], s.glasgow.motora, v => s.glasgow.motora = v));
+            body.appendChild(buildBtnGroup('Reatividade Pupilar (subtrai)', [{v:0,l:'0 Ambas reativas'},{v:1,l:'-1 Uma reativa'},{v:2,l:'-2 Nenhuma reativa'}], s.glasgow.pupilar, v => s.glasgow.pupilar = v));
+          }
         } else if (id === 'rass') {
           body.appendChild(buildBtnGroup('Escala de Agitação e Sedação de Richmond (RASS)', [{v:4,l:'+4 Combativo'},{v:3,l:'+3 Muito agitado'},{v:2,l:'+2 Agitado'},{v:1,l:'+1 Inquieto'},{v:0,l:'0 Alerta e calmo'},{v:-1,l:'-1 Sonolento'},{v:-2,l:'-2 Sedação leve'},{v:-3,l:'-3 Sedação moderada'},{v:-4,l:'-4 Sedação profunda'},{v:-5,l:'-5 Não despertável'}], s.rass, v => s.rass = v));
         } else if (id === 'cincinnati') {
